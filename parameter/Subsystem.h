@@ -33,6 +33,7 @@
 #include "ConfigurableElementWithMapping.h"
 #include "Mapper.h"
 #include "MappingContext.h"
+#include "SubsystemObjectFactory.h"
 #include <list>
 #include <stack>
 #include <string>
@@ -105,7 +106,12 @@ protected:
     // Subsystem context mapping keys publication
     void addContextMappingKey(const std::string& strMappingKey);
     // Subsystem object creator publication (strong reference)
-    void addSubsystemObjectFactory(CSubsystemObjectCreator* pSubsystemObjectCreator);
+    template<class SubSystemObject>
+    void addSubsystemObjectFactory(const std::string& strMappingKey, uint32_t uiAncestorIdMask)
+    {
+        _subsystemObjectCreatorArray.push_back(new TSubsystemObjectFactory<SubSystemObject>(strMappingKey, uiAncestorIdMask));
+    }
+
 private:
     CSubsystem(const CSubsystem&);
     CSubsystem& operator=(const CSubsystem&);

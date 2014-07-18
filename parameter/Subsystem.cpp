@@ -351,12 +351,6 @@ void CSubsystem::addContextMappingKey(const string& strMappingKey)
     _contextMappingKeyArray.push_back(strMappingKey);
 }
 
-// Subsystem object creator publication (strong reference)
-void CSubsystem::addSubsystemObjectFactory(CSubsystemObjectCreator* pSubsystemObjectCreator)
-{
-    _subsystemObjectCreatorArray.push_back(pSubsystemObjectCreator);
-}
-
 // Generic error handling from derived subsystem classes
 string CSubsystem::getMappingError(
         const string& strKey,
