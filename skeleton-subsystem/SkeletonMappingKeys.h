@@ -34,6 +34,5 @@ enum SkeletonItemType {
     ESkeletonOwner,
     EAmend1,
     EAmend2,
-    EAmendEnd = EAmend2,
-    ENbSkeletonItemTypes
+    EAmendEnd = EAmend2
 };
