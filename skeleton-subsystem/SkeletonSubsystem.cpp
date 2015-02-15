@@ -35,13 +35,9 @@
 #define base CSubsystem
 
 // Implementation
-CSkeletonSubsystem::CSkeletonSubsystem(const std::string& strName) : base(strName)
+CSkeletonSubsystem::CSkeletonSubsystem(const std::string& strName) :
+    base(strName, gSkeletonMappingKeys)
 {
-    // Provide mapping keys to upper layer
-    addContextMappingKey("Owner");
-    addContextMappingKey("Amend1");
-    addContextMappingKey("Amend2");
-
     // Provide creators to upper layer
     addSubsystemObjectFactory(new TSubsystemObjectFactory<CSkeletonSubsystemObject>("Message", 1 << ESkeletonOwner));
 }

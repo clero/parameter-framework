@@ -51,6 +51,17 @@ CSubsystem::CSubsystem(const string& strName) : base(strName), _pComponentLibrar
     // They'll be delt with locally
 }
 
+CSubsystem::CSubsystem(
+        const string& strName,
+        const std::vector<std::string>& contextMappingKeyArray) :
+    CSubsystem(strName)
+{
+    _contextMappingKeyArray.insert(
+            _contextMappingKeyArray.end(),
+            contextMappingKeyArray.begin(),
+            contextMappingKeyArray.end());
+}
+
 CSubsystem::~CSubsystem()
 {
     // Remove subsystem objects

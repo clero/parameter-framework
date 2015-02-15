@@ -36,7 +36,7 @@ endif(COMMAND cmake_policy)
 
 project(parameter-framework)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wall -Wextra -std=c++11")
 
 add_subdirectory(xmlserializer)
 add_subdirectory(parameter)
@@ -51,5 +51,3 @@ add_subdirectory(test/test-fixed-point-parameter)
 
 add_subdirectory(tools/xmlGenerator)
 add_subdirectory(tools/xmlValidator)
-
-add_subdirectory(bindings)

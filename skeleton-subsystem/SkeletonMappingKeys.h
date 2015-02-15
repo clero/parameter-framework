@@ -29,10 +29,19 @@
  */
 #pragma once
 
+#include <vector>
+#include <string>
+
 // Mapping item types
 enum SkeletonItemType {
     ESkeletonOwner,
     EAmend1,
     EAmend2,
     EAmendEnd = EAmend2
+};
+
+static const std::vector<std::string> gSkeletonMappingKeys = {
+    "Owner",
+    "Amend1",
+    "Amend2"
 };
