@@ -39,8 +39,6 @@
 #include "InstanceConfigurableElement.h"
 #include "SkeletonSubsystemObject.h"
 
-#define STR_FORMAT_LENGTH 32
-
 #define base CFormattedSubsystemObject
 
 using std::string;
