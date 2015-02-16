@@ -59,6 +59,21 @@ protected:
     uint8_t* getBlackboardLocation() const;
     // Size
     uint32_t getSize() const;
+
+    /**
+     * Return the size of the scalar handled by the subsystem Object
+     *
+     * @return scalar size
+     */
+    uint32_t getScalarSize() const;
+
+    /**
+     * Return the number of scalar element handled by the subsystem Object
+     *
+     * @return scalar size
+     */
+    uint32_t getArraySize() const;
+
     // Conversion utility
     static uint32_t asInteger(const std::string& strValue);
     static std::string asString(uint32_t uiValue);

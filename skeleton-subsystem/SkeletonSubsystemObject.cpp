@@ -55,27 +55,8 @@ CSkeletonSubsystemObject::CSkeletonSubsystemObject(
              context),
         _bWrongElementTypeError(false)
 {
-    // Get actual element type
-    const CParameterType* pParameterType = static_cast<const CParameterType*>(pInstanceConfigurableElement->getTypeElement());
-
-    // Retrieve sizes
-    _uiScalarSize = pParameterType->getSize();
-    _uiArraySize = pInstanceConfigurableElement->getFootPrint() / _uiScalarSize;
-
     // Construct message
     _strMessage = context.getItem(ESkeletonOwner) + ":" + strMappingValue ;
-
-    // Handle types
-    // Check we are able to handle elements (no exception support, defer the error)
-    switch(pInstanceConfigurableElement->getType()) {
-
-        case CInstanceConfigurableElement::EParameter:
-            break;
-        default:
-            _bWrongElementTypeError = true;
-            break;
-    }
-
 }
 // Sync to/from HW
 bool CSkeletonSubsystemObject::accessHW(bool bReceive, string& strError)
@@ -102,7 +83,7 @@ bool CSkeletonSubsystemObject::sendToHW(string& strError)
     for (uiIndex = 0 ; uiIndex < _uiArraySize ; uiIndex++) {
 
         // Read Value in BlackBoard
-        blackboardRead(pvValue, _uiScalarSize);
+        blackboardRead<???>(pvValue, _uiScalarSize);
 
         // Send here the value
         std::cout << "Sending to HW: " << _strMessage << std::endl;

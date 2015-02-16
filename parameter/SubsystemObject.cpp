@@ -50,6 +50,25 @@ CSubsystemObject::CSubsystemObject(CInstanceConfigurableElement* pInstanceConfig
 {
     // Syncer
     _pInstanceConfigurableElement->setSyncer(this);
+
+    //// Get actual element type
+    //const CParameterType* pParameterType = static_cast<const CParameterType*>(pInstanceConfigurableElement->getTypeElement());
+
+    //// Retrieve sizes
+    //_uiScalarSize = pParameterType->getSize();
+    //_uiArraySize = pInstanceConfigurableElement->getFootPrint() / _uiScalarSize;
+
+    // Handle types
+    // Check we are able to handle elements (no exception support, defer the error)
+    switch(pInstanceConfigurableElement->getType()) {
+
+        case CInstanceConfigurableElement::EParameter:
+            break;
+        default:
+            _bWrongElementTypeError = true;
+            break;
+    }
+
 }
 
 CSubsystemObject::~CSubsystemObject()
