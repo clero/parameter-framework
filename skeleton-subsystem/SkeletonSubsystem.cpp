@@ -39,5 +39,5 @@ CSkeletonSubsystem::CSkeletonSubsystem(const std::string& strName) :
     base(strName, gSkeletonMappingKeys)
 {
     // Provide creators to upper layer
-    addSubsystemObjectFactory(new TSubsystemObjectFactory<CSkeletonSubsystemObject>("Message", 1 << ESkeletonOwner));
+    addSubsystemObjectFactory<CSkeletonSubsystemObject>("Message", 1 << ESkeletonOwner);
 }
