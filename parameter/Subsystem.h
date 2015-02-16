@@ -91,7 +91,9 @@ public:
 
 protected:
     // Constructor destinated to derived classes
-    CSubsystem(const std::string& strName, const std::vector<std::string>& contextMappingKeyArray);
+    CSubsystem(
+            const std::string& strName,
+            const std::vector<std::string>& contextMappingKeyArray);
 
     // Parameter access
     virtual bool accessValue(CPathNavigator& pathNavigator, std::string& strValue, bool bSet, CParameterAccessContext& parameterAccessContext) const;

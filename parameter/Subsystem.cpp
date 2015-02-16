@@ -44,7 +44,7 @@ using std::string;
 using std::list;
 using std::ostringstream;
 
-CSubsystem::CSubsystem(const string& strName) : base(strName), _pComponentLibrary(new CComponentLibrary), _pInstanceDefinition(new CInstanceDefinition), _bBigEndian(false), _pMappingData(NULL)
+CSubsystem::CSubsystem(const string& strName) : CSubsystem(strName)
 {
     // Note: A subsystem contains instance components
     // InstanceDefintion and ComponentLibrary objects are then not chosen to be children
@@ -53,13 +53,14 @@ CSubsystem::CSubsystem(const string& strName) : base(strName), _pComponentLibrar
 
 CSubsystem::CSubsystem(
         const string& strName,
-        const std::vector<std::string>& contextMappingKeyArray) :
-    CSubsystem(strName)
+        const std::vector<std::string>& contextMappingKeyArray =
+            std::vector<std::string>{}) :
+    base(strName),
+    _contextMappingKeyArray(contextMappingKeyArray),
+    _pComponentLibrary(new CComponentLibrary),
+    _pInstanceDefinition(new CInstanceDefinition), _bBigEndian(false),
+    _pMappingData(NULL)
 {
-    _contextMappingKeyArray.insert(
-            _contextMappingKeyArray.end(),
-            contextMappingKeyArray.begin(),
-            contextMappingKeyArray.end());
 }
 
 CSubsystem::~CSubsystem()
