@@ -32,7 +32,6 @@
 #include <algorithm>
 #include <ctype.h>
 #include "SystemClass.h"
-#include "SubsystemLibrary.h"
 #include "VirtualSubsystem.h"
 #include "LoggingElementBuilderTemplate.h"
 #include <assert.h>
@@ -63,17 +62,15 @@ const char* gpcPluginSymbolPrefix = "get";
 const char* gpcPluginSymbolSuffix = "SubsystemBuilder";
 
 // Used by subsystem plugins
-typedef void (*GetSubsystemBuilder)(CSubsystemLibrary*, core::log::Logger& logger);
+typedef void (*GetSubsystemBuilder)(CSubsystemLibrary&, core::log::Logger& logger);
 
 CSystemClass::CSystemClass(log::Logger& logger)
-    : _pSubsystemLibrary(new CSubsystemLibrary()), _logger(logger)
+    : _subsystemLibrary(), _logger(logger)
 {
 }
 
 CSystemClass::~CSystemClass()
 {
-    delete _pSubsystemLibrary;
-
     // Destroy child subsystems *before* unloading the libraries (otherwise crashes will occur
     // as unmapped code will be referenced)
     clean();
@@ -102,14 +99,14 @@ bool CSystemClass::loadSubsystems(string& strError,
                                   bool bVirtualSubsystemFallback)
 {
     // Start clean
-    _pSubsystemLibrary->clean();
+    _subsystemLibrary.clean();
 
     typedef TLoggingElementBuilderTemplate<CVirtualSubsystem> VirtualSubsystemBuilder;
     // Add virtual subsystem builder
-    _pSubsystemLibrary->addElementBuilder("Virtual", new VirtualSubsystemBuilder(_logger));
+    _subsystemLibrary.addElementBuilder("Virtual", new VirtualSubsystemBuilder(_logger));
     // Set virtual subsytem as builder fallback if required
     if (bVirtualSubsystemFallback) {
-        _pSubsystemLibrary->setDefaultBuilder(new VirtualSubsystemBuilder(_logger));
+        _subsystemLibrary.setDefaultBuilder(new VirtualSubsystemBuilder(_logger));
     }
 
     // Add subsystem defined in shared libraries
@@ -255,7 +252,7 @@ bool CSystemClass::loadPlugins(list<string>& lstrPluginFiles, core::Results& err
         bAtLeastOneSubsystemPluginSuccessfullyLoaded = true;
 
         // Fill library
-        pfnGetSubsystemBuilder(_pSubsystemLibrary, _logger);
+        pfnGetSubsystemBuilder(_subsystemLibrary, _logger);
 
         // Remove successfully loaded plugin from list and select next
         lstrPluginFiles.erase(it++);
@@ -264,9 +261,9 @@ bool CSystemClass::loadPlugins(list<string>& lstrPluginFiles, core::Results& err
     return bAtLeastOneSubsystemPluginSuccessfullyLoaded;
 }
 
-const CSubsystemLibrary* CSystemClass::getSubsystemLibrary() const
+const CSubsystemLibrary& CSystemClass::getSubsystemLibrary() const
 {
-    return _pSubsystemLibrary;
+    return _subsystemLibrary;
 }
 
 void CSystemClass::checkForSubsystemsToResync(CSyncerSet& syncerSet, core::Results& infos)

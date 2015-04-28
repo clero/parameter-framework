@@ -43,9 +43,9 @@ extern "C"
  * The plugin symbol is of the form:
  * get<TYPE>SubsystemBuilder
 */
-void getSKELETONSubsystemBuilder(CSubsystemLibrary* pSubsystemLibrary, core::log::Logger& logger)
+void getSKELETONSubsystemBuilder(CSubsystemLibrary& subsystemLibrary, core::log::Logger& logger)
 {
-    pSubsystemLibrary->addElementBuilder(
+    subsystemLibrary.addElementBuilder(
             "Skeleton",
             new TLoggingElementBuilderTemplate<CSkeletonSubsystem>(logger));
 }

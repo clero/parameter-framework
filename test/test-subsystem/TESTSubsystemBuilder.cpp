@@ -34,10 +34,9 @@
 
 extern "C"
 {
-void getTESTSubsystemBuilder(CSubsystemLibrary* pSubsystemLibrary, core::log::Logger& logger)
+void getTESTSubsystemBuilder(CSubsystemLibrary& subsystemLibrary, core::log::Logger& logger)
 {
-    pSubsystemLibrary->addElementBuilder("TEST",
-                                         new TLoggingElementBuilderTemplate<CTESTSubsystem>(
-                                             logger));
+    subsystemLibrary.addElementBuilder("TEST",
+                                       new TLoggingElementBuilderTemplate<CTESTSubsystem>(logger));
 }
 }

@@ -31,12 +31,11 @@
 
 #include "ConfigurableElement.h"
 #include "SubsystemPlugins.h"
+#include "SubsystemLibrary.h"
 #include "Results.h"
 #include <log/Logger.h>
 #include <list>
 #include <string>
-
-class CSubsystemLibrary;
 
 class CSystemClass : public CConfigurableElement
 {
@@ -62,7 +61,7 @@ public:
     bool loadSubsystems(std::string& strError, const CSubsystemPlugins* pSubsystemPlugins,
                         bool bVirtualSubsystemFallback = false);
     // Subsystem factory
-    const CSubsystemLibrary* getSubsystemLibrary() const;
+    const CSubsystemLibrary& getSubsystemLibrary() const;
 
     /**
       * Look for subsystems that need to be resynchronized.
@@ -121,7 +120,7 @@ private:
     bool loadPlugins(std::list<std::string>& lstrPluginFiles, core::Results& errors);
 
     // Subsystem factory
-    CSubsystemLibrary* _pSubsystemLibrary;
+    CSubsystemLibrary _subsystemLibrary;
     std::list<void*> _subsystemLibraryHandleList; /**< Contains the list of all open plugin libs. */
 
     /** Application Logger we need to provide to plugins */
