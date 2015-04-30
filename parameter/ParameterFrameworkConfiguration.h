@@ -29,14 +29,16 @@
  */
 #pragma once
 
-#include "Element.h"
-
 #include <string>
+#include <list>
+#include "XmlSink.h"
 
-class CParameterFrameworkConfiguration : public CElement
+class CParameterFrameworkConfiguration : public IXmlSink
 {
 public:
-    CParameterFrameworkConfiguration();
+    CParameterFrameworkConfiguration(const std::string &configurationFile);
+
+    bool init(std::string &error);
 
     // System class name
     const std::string& getSystemClassName() const;
@@ -47,11 +49,43 @@ public:
     // Server port
     uint16_t getServerPort() const;
 
+    std::list<std::string> getPlugins() const
+    {
+        return _plugins;
+    }
+
+    const std::string &getBinarySettingsFile() const
+    {
+        return _binarySettingsFile;
+    }
+
+    const std::string &getSettingsFile() const
+    {
+        return _settingsFile;
+    }
+
+    const std::string &getStructureFile() const
+    {
+        return _structureFile;
+    }
+
+    const std::string &getSchemasLocation() const
+    {
+        return _schemasLocation;
+    }
+
+    void setSchemasLocation(const std::string &location)
+    {
+        _schemasLocation = location;
+    }
+
+private:
     // From IXmlSink
     virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext);
-private:
-    virtual std::string getKind() const;
-    virtual bool childrenAreDynamic() const;
+
+    bool retrieveSettingsConfiguration(const CXmlElement &settingsNode, CXmlSerializingContext& serializingContext);
+    bool retrievePathAttribute(const CXmlElement &xmlElement, std::string &path, CXmlSerializingContext& serializingContext);
+    bool retrievePluginsConfiguration(const CXmlElement &pluginNode, CXmlSerializingContext& serializingContext);
 
     // System class name
     std::string _strSystemClassName;
@@ -59,4 +93,15 @@ private:
     bool _bTuningAllowed;
     // Server port
     uint16_t _uiServerPort;
+    std::string _configurationFile;
+    std::string _configurationFolder;
+    //static
+    std::string _schemasLocation;
+    std::string _structureFile;
+
+    std::string _settingsFile;
+    std::string _binarySettingsFile;
+
+    std::string _subsystemPlugins;
+    std::list<std::string> _plugins;
 };

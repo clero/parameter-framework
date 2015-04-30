@@ -57,7 +57,6 @@ add_library(parameter SHARED
     ErrorContext.cpp
     FixedPointParameterType.cpp
     FormattedSubsystemObject.cpp
-    FrameworkConfigurationLocation.cpp
     HardwareBackSynchronizer.cpp
     InstanceConfigurableElement.cpp
     InstanceDefinition.cpp
@@ -78,7 +77,6 @@ add_library(parameter SHARED
     ParameterMgrPlatformConnector.cpp
     ParameterType.cpp
     PathNavigator.cpp
-    PluginLocation.cpp
     RuleParser.cpp
     SelectionCriteria.cpp
     SelectionCriteriaDefinition.cpp
