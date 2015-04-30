@@ -1,5 +1,5 @@
-/* 
- * Copyright (c) 2011-2014, Intel Corporation
+/*
+ * Copyright (c) 2011-2015, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -31,8 +31,9 @@
 
 #include "XmlElement.h"
 #include "XmlSerializingContext.h"
+#include "XmlFlow.h"
 
-class IXmlSource
+class IXmlSource : virtual public XmlFlow
 {
 public:
     virtual void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const = 0;

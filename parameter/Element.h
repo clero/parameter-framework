@@ -127,8 +127,6 @@ public:
     // Checksum for integrity checks
     uint8_t computeStructureChecksum() const;
 
-    // Class kind
-    virtual std::string getKind() const = 0;
 protected:
     // Content dumping
     virtual void logValue(std::string& strValue, CErrorContext& errorContext) const;

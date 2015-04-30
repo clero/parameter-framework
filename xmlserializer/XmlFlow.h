@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2015, Intel Corporation
+ * Copyright (c) 2015, Intel Corporation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without modification,
@@ -29,15 +29,16 @@
  */
 #pragma once
 
-#include "XmlElement.h"
-#include "XmlSerializingContext.h"
-#include "XmlFlow.h"
-
-class IXmlSink : virtual public XmlFlow
+/** Describe basic xml flow interface */
+class XmlFlow
 {
 public:
-    virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) = 0;
+    /** Retrieve Xml tag used for a class
+     *
+     * @return xmml tag used by the serialized class
+     */
+    virtual std::string getKind() const = 0;
 
 protected:
-    virtual ~IXmlSink() {}
+    virtual ~XmlFlow() {}
 };
