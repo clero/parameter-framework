@@ -33,7 +33,6 @@
 #include "ElementLibrarySet.h"
 #include "SubsystemLibrary.h"
 #include "NamedElementBuilderTemplate.h"
-#include "KindElementBuilderTemplate.h"
 #include "ElementBuilderTemplate.h"
 #include "SelectionCriterionType.h"
 #include "SubsystemElementBuilder.h"
@@ -46,10 +45,6 @@
 #include "ParameterBlackboard.h"
 #include "Parameter.h"
 #include "ParameterAccessContext.h"
-#include "FrameworkConfigurationGroup.h"
-#include "PluginLocation.h"
-#include "SubsystemPlugins.h"
-#include "FrameworkConfigurationLocation.h"
 #include "ConfigurableDomain.h"
 #include "DomainConfiguration.h"
 #include "XmlDomainSerializingContext.h"
@@ -116,9 +111,6 @@ using namespace core;
 
 // Used for remote processor server creation
 typedef IRemoteProcessorServerInterface* (*CreateRemoteProcessorServer)(uint16_t uiPort, IRemoteCommandHandler* pCommandHandler);
-
-// Global Schemas folder (fixed)
-const char* gacSystemSchemasSubFolder = "Schemas";
 
 // Config File System looks normally like this:
 // ---------------------------------------------
@@ -313,8 +305,6 @@ CParameterMgr::CParameterMgr(const string& strConfigurationFilePath, log::ILogge
     _bAutoSyncOn(true),
     _pMainParameterBlackboard(new CParameterBlackboard),
     _pElementLibrarySet(new CElementLibrarySet),
-    _strXmlConfigurationFilePath(strConfigurationFilePath),
-    _pSubsystemPlugins(NULL),
     _pvLibRemoteProcessorHandle(NULL),
     _uiStructureChecksum(0),
     _pRemoteProcessorServer(NULL),
@@ -324,7 +314,7 @@ CParameterMgr::CParameterMgr(const string& strConfigurationFilePath, log::ILogge
     _bFailOnMissingSubsystem(true),
     _bFailOnFailedSettingsLoad(true),
     _bValidateSchemasOnStart(false),
-    _pfwConfiguration(),
+    _pfwConfiguration(strConfigurationFilePath),
     _criteria(),
     _systemClass(_logger),
     _domains()
@@ -350,17 +340,6 @@ CParameterMgr::CParameterMgr(const string& strConfigurationFilePath, log::ILogge
                                            pRemoteCommandParserItem->_pcDescription);
     }
 
-    // Configuration file folder
-    std::string::size_type slashPos = _strXmlConfigurationFilePath.rfind('/', -1);
-    if(slashPos == std::string::npos) {
-        // Configuration folder is the current folder
-        _strXmlConfigurationFolderPath = '.';
-    } else {
-        _strXmlConfigurationFolderPath = _strXmlConfigurationFilePath.substr(0, slashPos);
-    }
-
-    // Schema absolute folder location
-    _strSchemaFolderLocation = _strXmlConfigurationFolderPath + "/" + gacSystemSchemasSubFolder;
 }
 
 CParameterMgr::~CParameterMgr()
@@ -466,32 +445,14 @@ bool CParameterMgr::loadFrameworkConfiguration(string& strError)
 {
     LOG_CONTEXT("Loading framework configuration");
 
-    // Parse Structure XML file
-    CXmlElementSerializingContext elementSerializingContext(strError);
-
-    if (!xmlParse(elementSerializingContext, &_pfwConfiguration, _strXmlConfigurationFilePath,
-                  EFrameworkConfigurationLibrary)) {
-
+    if (!_pfwConfiguration.init(strError)) {
+        warning() << "While parsing configuration: " << strError;
         return false;
     }
-    // Set class name to system class and configurable domains
     _systemClass.setName(_pfwConfiguration.getSystemClassName());
     _domains.setName(_pfwConfiguration.getSystemClassName());
 
-    // Get subsystem plugins elements
-    _pSubsystemPlugins =
-        static_cast<const CSubsystemPlugins*>(_pfwConfiguration.findChild("SubsystemPlugins"));
-
-    if (!_pSubsystemPlugins) {
-
-        strError = "Parameter Framework Configuration: couldn't find SubsystemPlugins element";
-
-        return false;
-    }
-
-    // Log tuning availability
     info() << "Tuning " << (_pfwConfiguration.isTuningAllowed() ? "allowed" : "prohibited");
-
     return true;
 }
 
@@ -501,7 +462,7 @@ bool CParameterMgr::loadSubsystems(std::string& error)
 
     // Load subsystems
     bool isSuccess = _systemClass.loadSubsystems(error,
-                                                 _pSubsystemPlugins,
+                                                 _pfwConfiguration.getPlugins(),
                                                  !_bFailOnMissingSubsystem);
 
     if (isSuccess) {
@@ -521,30 +482,14 @@ bool CParameterMgr::loadStructure(string& strError)
 {
     LOG_CONTEXT("Loading " + _systemClass.getName() + " system class structure");
 
-    // Get structure description element
-    const CFrameworkConfigurationLocation* pStructureDescriptionFileLocation =
-        static_cast<const CFrameworkConfigurationLocation*>(
-                _pfwConfiguration.findChildOfKind("StructureDescriptionFileLocation"));
-
-    if (!pStructureDescriptionFileLocation) {
-
-        strError = "No StructureDescriptionFileLocation element found for SystemClass " +
-                   _systemClass.getName();
-
-        return false;
-    }
-
-    // Get Xml structure file name
-    string strXmlStructureFilePath = pStructureDescriptionFileLocation->getFilePath(_strXmlConfigurationFolderPath);
-
     // Parse Structure XML file
     CXmlParameterSerializingContext parameterBuildContext(strError);
 
     {
-        LOG_CONTEXT("Importing system structure from file " + strXmlStructureFilePath);
+        LOG_CONTEXT("Importing system structure from file " + _pfwConfiguration.getStructureFile());
 
         if (!xmlParse(parameterBuildContext, &_systemClass,
-                      strXmlStructureFilePath, EParameterCreationLibrary)) {
+                      _pfwConfiguration.getStructureFile(), EParameterCreationLibrary)) {
 
             return false;
         }
@@ -584,45 +529,15 @@ bool CParameterMgr::loadSettingsFromConfigFile(string& strError)
 {
     LOG_CONTEXT("Loading settings");
 
-    // Get settings configuration element
-    const CFrameworkConfigurationGroup* pParameterConfigurationGroup =
-        static_cast<const CFrameworkConfigurationGroup*>(
-                _pfwConfiguration.findChildOfKind("SettingsConfiguration"));
-
-    if (!pParameterConfigurationGroup) {
-
-        // No settings to load
-
+    if (_pfwConfiguration.getSettingsFile().empty()) {
+        // Not settings to load
         return true;
     }
-    // Get binary settings file location
-    const CFrameworkConfigurationLocation* pBinarySettingsFileLocation = static_cast<const CFrameworkConfigurationLocation*>(pParameterConfigurationGroup->findChildOfKind("BinarySettingsFileLocation"));
-
-    string strXmlBinarySettingsFilePath;
-
-    if (pBinarySettingsFileLocation) {
-
-        // Get Xml binary settings file name
-        strXmlBinarySettingsFilePath = pBinarySettingsFileLocation->getFilePath(_strXmlConfigurationFolderPath);
-    }
-
-    // Get configurable domains element
-    const CFrameworkConfigurationLocation* pConfigurableDomainsFileLocation = static_cast<const CFrameworkConfigurationLocation*>(pParameterConfigurationGroup->findChildOfKind("ConfigurableDomainsFileLocation"));
-
-    if (!pConfigurableDomainsFileLocation) {
-
-        strError = "No ConfigurableDomainsFileLocation element found for SystemClass " +
-                   _systemClass.getName();
-
-        return false;
-    }
-
-    // Get Xml configuration domains file name
-    string strXmlConfigurationDomainsFilePath = pConfigurableDomainsFileLocation->getFilePath(_strXmlConfigurationFolderPath);
+    bool binarySettingsAvailable = !_pfwConfiguration.getBinarySettingsFile().empty();
 
     // Parse configuration domains XML file (ask to read settings from XML file if they are not provided as binary)
     CXmlDomainImportContext xmlDomainImportContext(strError,
-                                                   !pBinarySettingsFileLocation,
+                                                   binarySettingsAvailable,
                                                    _systemClass);
 
     // Selection criteria definition for rule creation
@@ -631,13 +546,13 @@ bool CParameterMgr::loadSettingsFromConfigFile(string& strError)
             const_cast<const CSelectionCriteria&>(_criteria).getSelectionCriteriaDefinition());
 
     // Auto validation of configurations if no binary settings provided
-    xmlDomainImportContext.setAutoValidationRequired(!pBinarySettingsFileLocation);
+    xmlDomainImportContext.setAutoValidationRequired(binarySettingsAvailable);
 
-    info() << "Importing configurable domains from file " << strXmlConfigurationDomainsFilePath
-           << " "  << ( pBinarySettingsFileLocation ? "without" : "with") << " settings";
+    info() << "Importing configurable domains from file " << _pfwConfiguration.getSettingsFile()
+           << " "  << ( binarySettingsAvailable ? "without" : "with") << " settings";
 
     // Do parse
-    if (!xmlParse(xmlDomainImportContext, &_domains, strXmlConfigurationDomainsFilePath,
+    if (!xmlParse(xmlDomainImportContext, &_domains, _pfwConfiguration.getSettingsFile(),
                 EParameterConfigurationLibrary, "SystemClassName")) {
 
         return false;
@@ -647,8 +562,8 @@ bool CParameterMgr::loadSettingsFromConfigFile(string& strError)
                            _domains.computeStructureChecksum();
 
     // Load binary settings if any provided
-    if (pBinarySettingsFileLocation && !_domains.serializeSettings(
-                strXmlBinarySettingsFilePath, false, _uiStructureChecksum, strError)) {
+    if (binarySettingsAvailable && !_domains.serializeSettings(
+                _pfwConfiguration.getBinarySettingsFile(), false, _uiStructureChecksum, strError)) {
 
         return false;
     }
@@ -701,7 +616,7 @@ bool CParameterMgr::xmlParse(CXmlElementSerializingContext& elementSerializingCo
     elementSerializingContext.set(_pElementLibrarySet->getElementLibrary(eElementLibrary));
 
     // Get Schema file associated to root element
-    string strXmlSchemaFilePath = _strSchemaFolderLocation + "/" + pRootElement->getKind() + ".xsd";
+    string strXmlSchemaFilePath = _pfwConfiguration.getSchemasLocation() + "/" + pRootElement->getKind() + ".xsd";
 
     std::auto_ptr<CXmlFileDocSource> fileDocSource(NULL);
 
@@ -843,12 +758,12 @@ bool CParameterMgr::getFailureOnFailedSettingsLoad()
 
 const string& CParameterMgr::getSchemaFolderLocation() const
 {
-    return _strSchemaFolderLocation;
+    return _pfwConfiguration.getSchemasLocation();
 }
 
 void CParameterMgr::setSchemaFolderLocation(const string& strSchemaFolderLocation)
 {
-    _strSchemaFolderLocation = strSchemaFolderLocation;
+    _pfwConfiguration.setSchemasLocation(strSchemaFolderLocation);
 }
 
 void CParameterMgr::setValidateSchemasOnStart(bool bValidate)
@@ -2276,7 +2191,7 @@ bool CParameterMgr::importDomainsXml(const string& strXmlSource, bool bWithSetti
             _pElementLibrarySet->getElementLibrary(EParameterConfigurationLibrary));
 
     // Get Schema file associated to root element
-    string strXmlSchemaFilePath = _strSchemaFolderLocation + "/" +
+    string strXmlSchemaFilePath = _pfwConfiguration.getSchemasLocation() + "/" +
                                   _domains.getKind() + ".xsd";
 
     // Xml Source
@@ -2356,7 +2271,7 @@ bool CParameterMgr::serializeElement(string& strXmlDest,
     }
 
     // Get Schema file associated to root element
-    string strXmlSchemaFilePath = _strSchemaFolderLocation + "/" +
+    string strXmlSchemaFilePath = _pfwConfiguration.getSchemasLocation() + "/" +
                                   element.getKind() + ".xsd";
 
     // Use a doc source by loading data from instantiated Configurable Domains
@@ -2481,19 +2396,6 @@ CParameterBlackboard* CParameterMgr::getParameterBlackboard()
 // Dynamic creation library feeding
 void CParameterMgr::feedElementLibraries()
 {
-    // Global Configuration handling
-    CElementLibrary* pFrameworkConfigurationLibrary = new CElementLibrary;
-
-    pFrameworkConfigurationLibrary->addElementBuilder("ParameterFrameworkConfiguration", new TElementBuilderTemplate<CParameterFrameworkConfiguration>());
-    pFrameworkConfigurationLibrary->addElementBuilder("SubsystemPlugins", new TKindElementBuilderTemplate<CSubsystemPlugins>());
-    pFrameworkConfigurationLibrary->addElementBuilder("Location", new TKindElementBuilderTemplate<CPluginLocation>());
-    pFrameworkConfigurationLibrary->addElementBuilder("StructureDescriptionFileLocation", new TKindElementBuilderTemplate<CFrameworkConfigurationLocation>());
-    pFrameworkConfigurationLibrary->addElementBuilder("SettingsConfiguration", new TKindElementBuilderTemplate<CFrameworkConfigurationGroup>());
-    pFrameworkConfigurationLibrary->addElementBuilder("ConfigurableDomainsFileLocation", new TKindElementBuilderTemplate<CFrameworkConfigurationLocation>());
-    pFrameworkConfigurationLibrary->addElementBuilder("BinarySettingsFileLocation", new TKindElementBuilderTemplate<CFrameworkConfigurationLocation>());
-
-    _pElementLibrarySet->addElementLibrary(pFrameworkConfigurationLibrary);
-
     // Parameter creation
     CElementLibrary* pParameterCreationLibrary = new CElementLibrary;
 

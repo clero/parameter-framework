@@ -30,7 +30,6 @@
 #pragma once
 
 #include "ConfigurableElement.h"
-#include "SubsystemPlugins.h"
 #include "Results.h"
 #include <log/Logger.h>
 #include <list>
@@ -41,6 +40,7 @@ class CSubsystemLibrary;
 class CSystemClass : public CConfigurableElement
 {
 public:
+    typedef std::list<std::string> PluginsLocation;
 
     /**
      * @param[in] logger the logger provided by the client
@@ -59,7 +59,7 @@ public:
      * @return true if the plugins succesfully started or that a fallback is available,
                false otherwise.
      */
-    bool loadSubsystems(std::string& strError, const CSubsystemPlugins* pSubsystemPlugins,
+    bool loadSubsystems(std::string& strError, const PluginsLocation &pluginsLocation,
                         bool bVirtualSubsystemFallback = false);
     // Subsystem factory
     const CSubsystemLibrary* getSubsystemLibrary() const;
@@ -103,7 +103,7 @@ private:
      * @return true if all plugins have been succesfully loaded, false otherwises.
      */
     bool loadSubsystemsFromSharedLibraries(core::Results& errors,
-                                           const CSubsystemPlugins* pSubsystemPlugins);
+                                           PluginsLocation pluginsLocation);
 
     // Plugin symbol computation
     static std::string getPluginSymbol(const std::string& strPluginPath);
@@ -118,7 +118,7 @@ private:
      *         When false is returned, some plugins MIHGT have been loaded
      *         but the lstrPluginFiles is accurate.
      */
-    bool loadPlugins(std::list<std::string>& lstrPluginFiles, core::Results& errors);
+    bool loadPlugins(PluginsLocation &lstrPluginFiles, core::Results& errors);
 
     // Subsystem factory
     CSubsystemLibrary* _pSubsystemLibrary;
