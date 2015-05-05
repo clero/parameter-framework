@@ -506,7 +506,11 @@ private:
     bool loadSettingsFromConfigFile(std::string& strError);
 
     // Parse XML file into Root element
-    bool xmlParse(CXmlElementSerializingContext& elementSerializingContext, CElement* pRootElement, const std::string& strXmlFilePath, const std::string& strXmlFolder, ElementLibrary eElementLibrary, const std::string& strNameAttrituteName = "Name");
+    bool xmlParse(CXmlElementSerializingContext& elementSerializingContext,
+                  CElement* pRootElement,
+                  const std::string& strXmlFilePath,
+                  ElementLibrary eElementLibrary,
+                  const std::string& strNameAttrituteName = "Name");
 
     /**
      * Export an element object to an Xml destination.
