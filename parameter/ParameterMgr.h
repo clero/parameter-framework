@@ -52,7 +52,6 @@
 
 class CElementLibrarySet;
 class CSubsystemLibrary;
-class CSystemClassConfiguration;
 class CParameterBlackboard;
 class IRemoteProcessorServerInterface;
 class CParameterHandle;
