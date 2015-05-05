@@ -37,7 +37,6 @@
 #include "ElementBuilderTemplate.h"
 #include "SelectionCriterionType.h"
 #include "SubsystemElementBuilder.h"
-#include "FileIncluderElementBuilder.h"
 #include "ComponentType.h"
 #include "ComponentInstance.h"
 #include "ParameterBlockType.h"
@@ -2518,7 +2517,6 @@ void CParameterMgr::feedElementLibraries()
     pParameterCreationLibrary->addElementBuilder("EnumParameter", new TNamedElementBuilderTemplate<CEnumParameterType>());
     pParameterCreationLibrary->addElementBuilder("ValuePair", new TElementBuilderTemplate<CEnumValuePair>());
     pParameterCreationLibrary->addElementBuilder("FixedPointParameter", new TNamedElementBuilderTemplate<CFixedPointParameterType>());
-    pParameterCreationLibrary->addElementBuilder("SubsystemInclude", new CFileIncluderElementBuilder(_bValidateSchemasOnStart));
 
     _pElementLibrarySet->addElementLibrary(pParameterCreationLibrary);
 
