@@ -46,12 +46,27 @@ inline auto make_attributes(TypeList&&... attribute)
     return std::make_tuple(attribute...);
 }
 
+template <class Attr, class ChildsNode>
+struct Node
+{
+    std::string tag;
+    Attr attributes;
+    ChildsNode childs;
+};
+
+template <class Attr, class ChildsNode>
+inline Node<Attr, ChildsNode> make_node(const std::string &&name,
+                                        const Attr &&attributes,
+                                        const ChildsNode &&childs)
+{
+    return {name, attributes, childs};
+}
 
 template <class... TypeList>
-inline auto make_node(const std::string&&, TypeList&&... node)
-    -> decltype(std::make_tuple(attribute...))
+inline auto make_nodes(TypeList&&... node)
+    -> decltype(std::make_tuple(node...))
 {
-    return std::make_tuple(attribute...);
+    return std::make_tuple(node...);
 }
 //template <class... TypeNull> struct Nodes {};
 //template <class Head, class... Tail>
@@ -167,6 +182,18 @@ int main()
                         make_attribute("B", toFill.sB),
                         make_attribute("C", toFill.sC)
                         );
+
+    auto node = make_node("FillMe",
+                          make_attributes(
+                            make_attribute("A", toFill.sA),
+                            make_attribute("B", toFill.sB),
+                            make_attribute("C", toFill.sC)),
+                          make_nodes(make_node("coucou",
+                                     make_attributes(
+                                       make_attribute("A", toFill.sA),
+                                       make_attribute("B", toFill.sB),
+                                       make_attribute("C", toFill.sC))))
+                            );
 
     //FillMe pleaseFill;
     //Nodes<int, std::string, bool> nodes{
