@@ -4,7 +4,17 @@
 #include <string>
 #include <functional>
 
+/** Data member setter to use during deserialization
+ *
+ * @tparam the type of the data to retrieve
+ */
 template <typename T> using Setter = std::function<void(T)>;
+
+/** Xml Attribute representation.
+ * Allows to retrieve the data in an xml file and to set it in the right place
+ *
+ * @tparam the type of the data to retrieve
+ */
 template <typename T>
 struct Attribute
 {
@@ -12,6 +22,7 @@ struct Attribute
     const Setter<T> setter;
 };
 
+/** Attributes are list of attribute of differrent Setter type */
 template <class... TypeNull> struct Attributes {};
 template <class Head, class... Tail>
 struct Attributes<Head, Tail...> : Attributes<Tail...>
@@ -24,51 +35,45 @@ struct Attributes<Head, Tail...> : Attributes<Tail...>
     Attribute<Head> front;
 };
 
-template <class... TypeList>
-struct Node;
+template <class... TypeList> struct Node;
+template <class... TypeList> using Nodes = std::list<Node<TypeList...> >;
 
-template <class... TypeList>
-struct Tag
-{
-    std::string tag;
-    Node<TypeList...> node;
-};
-
-template <class... TypeList> using Tags = std::list<Tag<TypeList...> >;
-
+/** Xml tag representation */
 template <class... TypeList>
 struct Node
 {
+    std::string tag;
     Attributes<TypeList...> attributes;
-    Tags<TypeList...> tags;
+    Nodes<TypeList...> childs;
 };
+
 
 template <class... TypeList>
 class Serializer
 {
-    Serializer(const std::string &xmlFile, Tag<TypeList...> rootTag)
+    Serializer(const std::string &xmlFile, Node<TypeList...> rootNode)
     {
-        CXmlSerializingContext context(error);
-        CXmlFileDocSource source(_configurationFile,
-                                 "",//_schemasLocation + "/ParameterFrameworkConfiguration.xsd",
-                             "ParameterFrameworkConfiguration",
-                             false);
+        //CXmlSerializingContext context(error);
+        //CXmlFileDocSource source(_configurationFile,
+        //                         "",//_schemasLocation + "/ParameterFrameworkConfiguration.xsd",
+        //                     "ParameterFrameworkConfiguration",
+        //                     false);
 
-        // TODO: throw in case of error
-        source.populate(serializingContext);
+        //// TODO: throw in case of error
+        //source.populate(serializingContext);
 
-        CXmlElement root;
-        source.getRootElement(root);
+        //CXmlElement root;
+        //source.getRootElement(root);
 
-        // TODO: test that rootTag has the right type
+        //// TODO: test that rootTag has the right type
 
-        const int size = sizeof...(rootTag.node.tags);
+        //const int size = sizeof...(rootTag.node.tags);
 
-        for(auto &attribute : rootTag.node.tags) {
+        //for(auto &attribute : rootTag.node.tags) {
 
-        for(auto &childTags : rootTag.node.tags) {
-            //parse
-        }
+        //for(auto &childTags : rootTag.node.tags) {
+        //    //parse
+        //}
 
 
 
@@ -109,17 +114,25 @@ private:
 int main()
 {
     FillMe toFill;
-    Tags<int, std::string, bool> tags{
+    FillMe pleaseFill;
+    Nodes<int, std::string, bool> nodes{
         {
             "FillMe",
             {
-                {
-                    {"A", [&toFill](int a){ toFill.setA(a); }},
-                    {"B", [&toFill](std::string b){ toFill.setB(b); }},
-                    {"C", [&toFill](bool c){ toFill.setC(c); } }
-                },
-                {} //empty child tag list
-            }
+                {"A", [&toFill](int a){ toFill.setA(a); }},
+                {"B", [&toFill](std::string b){ toFill.setB(b); }},
+                {"C", [&toFill](bool c){ toFill.setC(c); } }
+            },
+            {} //empty child tag list
+        },
+        {
+            "FillIt",
+            {
+                {"A", [&pleaseFill](int a){ pleaseFill.setA(a); }},
+                {"B", [&pleaseFill](std::string b){ pleaseFill.setB(b); }},
+                {"C", [&pleaseFill](bool c){ pleaseFill.setC(c); } }
+            },
+            {} //empty child tag list
         }
     };
 
@@ -131,17 +144,15 @@ int main()
     //    {"B", [&toFill](std::string b){ toFill.setB(b); }},
     //    {"C", [&toFill](bool c){ toFill.setC(c); }}
     //};
-    //Tag<int, std::string, bool> tag{
-    //    "FillMe",
-    //    {
-    //        {
-    //            {"A", [&toFill](int a){ toFill.setA(a); }},
-    //            {"B", [&toFill](std::string b){ toFill.setB(b); }},
-    //            {"C", [&toFill](bool c){ toFill.setC(c); } }
-    //        },
-    //        {} //empty child tag list
-    //    }
-    //};
+    Node<int, std::string, bool> tag{
+        "FillMe",
+        {
+            {"A", [&toFill](int a){ toFill.setA(a); }},
+            {"B", [&toFill](std::string b){ toFill.setB(b); }},
+            {"C", [&toFill](bool c){ toFill.setC(c); } }
+        },
+        {} //empty child tag list
+    };
     return 0;
 }
 
