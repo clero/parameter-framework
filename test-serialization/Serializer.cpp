@@ -1,151 +1,144 @@
+#include <Attribute.hpp>
+#include "XmlFileDocSource.h"
+#include "IXmlSource.h"
 
-#include <map>
 #include <list>
+#include <map>
 #include <string>
-#include <tuple>
+#include <memory>
 #include <functional>
 
-//template <template <class> class Wrapper, class... TypeList>
-//inline auto make_wrapped_tuple(Wrapper<TypeList>&&... wrapped)
-//    -> decltype(std::make_tuple(wrapped...))
-//{
-//    return std::make_tuple(wrapped...);
-//}
-/** Data member setter to use during deserialization
- *
- * @tparam the type of the data to retrieve
- */
-template <typename T> using Setter = std::function<void(T)>;
+using Tag = std::string;
+class NodeBody;
+using Nodes = std::map<Tag, NodeBody>;
 
-/** Xml Attribute representation.
- * Allows to retrieve the data in an xml file and to set it in the right place
- *
- * @tparam the type of the data to retrieve
- */
-template <typename T>
-struct Attribute
+/** Xml tag representation */
+class NodeBody
 {
-    const std::string name;
-    const Setter<T> setter;
-};
-
-//template <class... TypeList> using Attributes = std::tuple<Attribute<TypeList>...>;
-
-/** Attributes are list of attribute of differrent Setter type */
-
-template <class T>
-inline Attribute<T> make_attribute(const std::string &&name, const Setter<T> &setter)
-{
-    return {name, setter};
-}
-
-template <class... TypeList>
-inline auto make_attributes(TypeList&&... attribute)
-    -> decltype(std::make_tuple(attribute...))
-{
-    return std::make_tuple(attribute...);
-}
-
-template <class Attr, class ChildsNode>
-struct Node
-{
-    std::string tag;
-    Attr attributes;
-    ChildsNode childs;
-};
-
-template <class Attr, class ChildsNode>
-inline Node<Attr, ChildsNode> make_node(const std::string &&name,
-                                        const Attr &&attributes,
-                                        const ChildsNode &&childs)
-{
-    return {name, attributes, childs};
-}
-
-template <class... TypeList>
-inline auto make_nodes(TypeList&&... node)
-    -> decltype(std::make_tuple(node...))
-{
-    return std::make_tuple(node...);
-}
-//template <class... TypeNull> struct Nodes {};
-//template <class Head, class... Tail>
-//struct Nodes<Head, Tail...> : Nodes<Tail...>
-//{
-//    Nodes(Node<Head> head, Node<Tail>... tail) :
-//        Nodes<Tail...>(tail...), front(head)
+//public:
+//    Node(const std::string &tag, Attributes &attributes, Nodes &childs) :
+//        mTag(tag), mAttributes(attributes), mChilds(childs)
 //    {
 //    }
-//
-//    Node<Head> front;
-//};
 
-//template <class... TypeList> struct Node;
-////template <class... TypeList> using Nodes = std::list<Node<TypeList...> >;
-//
-///** Xml tag representation */
-//template <class... TypeNull> struct Node {};
-//template <template <class... SubTypeList> class Head, class... Tail>
-//struct Node<Head<SubTypeList>, Tail...> : Node<Tail...>
-//{
-//    Node(Head<SubTypeList> head, Node<Tail>... childs) :
-//        Node<Tail...>(childs...), childs(head)
-//    {
-//    }
-//
-//    std::string tag;
-//    //Head attributes;
-//    Node<Tail...> childs;
-//};
+public:
+    Attributes mAttributes;
+    Nodes mChilds;
+};
 
-//template <template <class... TypeList> class AttributesTemplate, class... ChildTypeList> struct Node;
-//template <template <class... TypeList> class AttributesTemplate, class... ChildTypeList>
-//struct Node
-//{
-//
-//    const std::string name;
-//    AttributesTemplate<TypeList> attributes;
-//    std::list<Node<ChildTypeList...> > childs;
-//}
+using Node = std::pair<Tag, NodeBody>;
 
-
-template <class... TypeList>
-class Serializer
+class Deserializer
 {
-    //Serializer(const std::string &xmlFile, Node<TypeList...> rootNode)
+    Deserializer(/**const std::string &xmlFile, Node rootNode*/)
+    {
+        CXmlSerializingContext context(error);
+        CXmlFileDocSource source(xmlFile,
+                                 "",//_schemasLocation + "/ParameterFrameworkConfiguration.xsd",
+                                 rootNode.mTag,
+                                 false);
+
+        // TODO: throw in case of error
+        source.populate(serializingContext);
+
+
+
+      // Open file
+      // Read root tag
+      // call good setters
+      // call an other serializer on the next tag
+    }
+
+    using XmlNode = std::string; // temporary
+
+
+    void deserialize()
+    {
+        CXmlElement root;
+        source.getRootElement(root);
+
+        // TODO: test that rootTag has the right type
+        for(auto &attribute : rootTag.second.mAttributes) {
+
+        }
+
+        /**
+         * Nodes:
+         *  go through all child nodes read from xml
+         *  for each node execute deserialization routine (ex push_back etc)
+         *  call deserialize on it
+         *
+         */
+
+
+
+       // for(auto &childTags : rootTag.nodes) {
+
+       //     //parse
+       // }
+    }
+
+
+    //Serializer(XmlNode node, Tag rootTag)
     //{
-        //CXmlSerializingContext context(error);
-        //CXmlFileDocSource source(_configurationFile,
-        //                         "",//_schemasLocation + "/ParameterFrameworkConfiguration.xsd",
-        //                     "ParameterFrameworkConfiguration",
-        //                     false);
-
-        //// TODO: throw in case of error
-        //source.populate(serializingContext);
-
-        //CXmlElement root;
-        //source.getRootElement(root);
-
-        //// TODO: test that rootTag has the right type
-
-        //const int size = sizeof...(rootTag.node.tags);
-
-        //for(auto &attribute : rootTag.node.tags) {
-
-        //for(auto &childTags : rootTag.node.tags) {
-        //    //parse
-        //}
-
-
-
-
-        // Open file
-        // Read root tag
-        // call good setters
-        // call an other serializer on the next tag
+    //    // Read root tag
+    //    // call good setters
+    //    // call an other serializer on the next tag
     //}
+};
 
-    //using XmlNode = std::string; // temporary
+class Serialize : IXmlSource
+{
+    Serialize(const std::string &xmlFile, Node rootNode)
+    {
+        CXmlSerializingContext context(error);
+        CXmlMemoryDocSource memorySource(this, rootNode.first, "", "parameter-framework",
+                                         "", false);
+
+        // TODO: throw in case of error
+        memorySource.populate(serializingContext);
+
+
+
+      // Open file
+      // Read root tag
+      // call good setters
+      // call an other serializer on the next tag
+    }
+
+    void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
+    {
+        CXmlElement root;
+        source.getRootElement(root);
+
+        // TODO: test that rootTag has the right type
+        for(auto &attribute : rootTag.second.mAttributes) {
+            
+        }
+
+        /**
+         * Nodes:
+         *  go through all child nodes read from xml
+         *  for each node execute deserialization routine (ex push_back etc)
+         *  call deserialize on it
+         *
+         */
+
+        // Create corresponding child element
+        CXmlElement xmlChildElement;
+
+        xmlElement.createChild(xmlChildElement, pChild->getKind());
+
+        // Propagate
+        pChild->toXml(xmlChildElement, serializingContext);
+
+
+       // for(auto &childTags : rootTag.nodes) {
+
+       //     //parse
+       // }
+    }
+
 
     //Serializer(XmlNode node, Tag rootTag)
     //{
@@ -158,13 +151,26 @@ class Serializer
 class FillMe
 {
 public:
-    int getA() { return mA; };
-    std::string getB() { return mB; };
-    bool getC() { return mC; };
 
-    Setter<int> sA = [this](int a){ mA = a; };
-    Setter<std::string> sB = [this](std::string b){ mB = b; };
-    Setter<bool> sC = [this](bool c){ mC = c; };
+    FillMe(int a, const std::string& b, bool c) :
+        mA(a), mB(b), mC(c)
+    {
+
+    }
+
+    int getA() { return mA; }
+    std::string getB() { return mB; }
+    bool getC() { return mC; }
+
+    void setA(int a){ mA = a; }
+    void setB(std::string b){ mB = b; }
+    void setC(bool c){ mC = c; }
+
+    std::string to_string()
+    {
+        return "A: " + std::to_string(mA) +
+               ", B: " + mB + ", C: " + (mC ? "true" : "false");
+    }
 
 private:
     int mA = 0;
@@ -174,66 +180,29 @@ private:
 
 int main()
 {
-    FillMe toFill;
-    auto attr = make_attribute("A", toFill.sA);
 
-    auto attributes = make_attributes(
-                        make_attribute("A", toFill.sA),
-                        make_attribute("B", toFill.sB),
-                        make_attribute("C", toFill.sC)
-                        );
+    FillMe toFill{666, "huhu", true};
 
-    auto node = make_node("FillMe",
-                          make_attributes(
-                            make_attribute("A", toFill.sA),
-                            make_attribute("B", toFill.sB),
-                            make_attribute("C", toFill.sC)),
-                          make_nodes(make_node("coucou",
-                                     make_attributes(
-                                       make_attribute("A", toFill.sA),
-                                       make_attribute("B", toFill.sB),
-                                       make_attribute("C", toFill.sC))))
-                            );
-
-    //FillMe pleaseFill;
-    //Nodes<int, std::string, bool> nodes{
-    //    {
-    //        "FillMe",
-    //        {
-    //            {"A", [&ill](int a){ toFill.setA(a); }},
-    //            {"B", [&toFill](std::string b){ toFill.setB(b); }},
-    //            {"C", [&toFill](bool c){ toFill.setC(c); } }
-    //        },
-    //        {} //empty child tag list
-    //    },
-    //    {
-    //        "FillIt",
-    //        {
-    //            {"A", [&pleaseFill](int a){ pleaseFill.setA(a); }},
-    //            {"B", [&pleaseFill](std::string b){ pleaseFill.setB(b); }},
-    //            {"C", [&pleaseFill](bool c){ pleaseFill.setC(c); } }
-    //        },
-    //        {} //empty child tag list
-    //    }
-    //};
+    Nodes nodes {
+        { "FillMe",
+            { { { "A",
+                  Type<int>{},
+                  [&toFill](){ return toFill.getA(); },
+                  [&toFill](int a){ toFill.setA(a); } } },
+                {
+                 { "FillIt",
+                     { { { "B",
+                         Type<std::string>{},
+                         [&toFill](){ return toFill.getB(); },
+                         [&toFill](std::string b){ toFill.setB(b); } },
+                       { "C",
+                         Type<bool>{},
+                         [&toFill](){ return toFill.getC(); },
+                         [&toFill](bool c){ toFill.setC(c); } } },
+                     {} /** empty child tag list */ } }
+                } } } };
 
 
-    // ok
-    //Attribute<std::string> test{"B", [&toFill](std::string b){ toFill.setB(b); }};
-    //Attributes<int, std::string, bool> testList{
-    //    {"A", [&toFill](int a){ toFill.setA(a); }},
-    //    {"B", [&toFill](std::string b){ toFill.setB(b); }},
-    //    {"C", [&toFill](bool c){ toFill.setC(c); }}
-    //};
-    //Node<int, std::string, bool> tag{
-    //    "FillMe",
-    //    {
-    //        {"A", [&toFill](int a){ toFill.setA(a); }},
-    //        {"B", [&toFill](std::string b){ toFill.setB(b); }},
-    //        {"C", [&toFill](bool c){ toFill.setC(c); } }
-    //    },
-    //    {} //empty child tag list
-    //};
     return 0;
 }
 

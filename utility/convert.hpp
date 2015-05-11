@@ -55,6 +55,7 @@ template<> struct ConvertionAllowed<uint16_t> {};
 template<> struct ConvertionAllowed<int16_t> {};
 template<> struct ConvertionAllowed<float> {};
 template<> struct ConvertionAllowed<double> {};
+template<> struct ConvertionAllowed<std::string> {};
 
 template<typename T>
 static inline bool convertTo(const std::string &str, T &result)
