@@ -83,10 +83,10 @@ bool CXmlMemoryDocSource::populate(CXmlSerializingContext& serializingContext)
     if (_bWithHeader) {
 
         // Schema namespace
-        docElement.setAttributeString("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
+        docElement.setAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
 
         // Schema location
-        docElement.setAttributeString("xsi:noNamespaceSchemaLocation", _strXmlSchemaFile);
+        docElement.setAttribute("xsi:noNamespaceSchemaLocation", _strXmlSchemaFile);
     }
 
     // Compose the xml document

@@ -73,7 +73,7 @@ string CParameterType::getUnit() const
 bool CParameterType::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
 {
     // Unit
-    _strUnit = xmlElement.getAttributeString("Unit");
+    xmlElement.getAttribute("Unit", _strUnit);
 
     return base::fromXml(xmlElement, serializingContext);
 }

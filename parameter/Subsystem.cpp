@@ -117,7 +117,8 @@ bool CSubsystem::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& 
     CXmlElement childElement;
 
     // Manage mapping attribute
-    std::string rawMapping = xmlElement.getAttributeString("Mapping");
+    string rawMapping;
+    xmlElement.getAttribute("Mapping", rawMapping);
     if (!rawMapping.empty()) {
 
         std::string error;
