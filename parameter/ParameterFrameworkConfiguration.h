@@ -31,9 +31,8 @@
 
 #include <string>
 #include <list>
-#include "XmlSink.h"
 
-class CParameterFrameworkConfiguration : public IXmlSink
+class CParameterFrameworkConfiguration
 {
 public:
     CParameterFrameworkConfiguration(const std::string &configurationFile);
@@ -79,14 +78,6 @@ public:
         _schemasLocation = location;
     }
 
-private:
-    // From IXmlSink
-    virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext);
-
-    bool retrieveSettingsConfiguration(const CXmlElement &settingsNode, CXmlSerializingContext& serializingContext);
-    bool retrievePathAttribute(const CXmlElement &xmlElement, std::string &path, CXmlSerializingContext& serializingContext);
-    bool retrievePluginsConfiguration(const CXmlElement &pluginNode, CXmlSerializingContext& serializingContext);
-
     // System class name
     std::string _strSystemClassName;
     // Tuning allowed
@@ -102,6 +93,5 @@ private:
     std::string _settingsFile;
     std::string _binarySettingsFile;
 
-    std::string _subsystemPlugins;
     std::list<std::string> _plugins;
 };
