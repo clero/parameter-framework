@@ -598,13 +598,13 @@ Parser::CommandReturn Parser::listConfigurations(const IRemoteCommand& remoteCom
            CommandHandler::ESucceeded : CommandHandler::EFailed;
 }
 
-Parser::CommandReturn Parser::dumpDomains(const IRemoteCommand&, std::string& result)
+Parser::CommandReturn Parser::dumpDomains(const IRemoteCommand&, std::string& /**result*/)
 {
     // Dummy error context
     std::string strError;
     CErrorContext errorContext(strError);
     // Dump
-    mParameterMgr._domains.dumpContent(result, errorContext);
+    //mParameterMgr._domains.dumpContent(result, errorContext);
     return CommandHandler::ESucceeded;
 }
 

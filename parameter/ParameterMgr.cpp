@@ -74,6 +74,7 @@
 #include "XmlMemoryDocSource.h"
 #include <xmlserializer/Deserializer.h>
 #include "bindings/xml/ConfigurationBinder.h"
+#include "bindings/xml/SettingsBinder.h"
 #include "Utility.h"
 #include <sstream>
 #include <fstream>
@@ -267,7 +268,6 @@ bool CParameterMgr::loadFrameworkConfiguration(string& strError)
         return false;
     }
     _systemClass.setName(_pfwConfiguration.systemClassName);
-    _domains.setName(_pfwConfiguration.systemClassName);
 
     info() << "Tuning " << (_pfwConfiguration.tuningAllowed ? "allowed" : "prohibited");
     return true;
@@ -350,42 +350,16 @@ bool CParameterMgr::loadSettingsFromConfigFile(string& strError)
 {
     LOG_CONTEXT("Loading settings");
 
-    if (_pfwConfiguration.settingsFile.empty()) {
-        // Not settings to load
-        return true;
-    }
-    bool binarySettingsAvailable = !_pfwConfiguration.binarySettingsFile.empty();
-
-    // Parse configuration domains XML file (ask to read settings from XML file if they are not provided as binary)
-    CXmlDomainImportContext xmlDomainImportContext(strError,
-                                                   binarySettingsAvailable,
-                                                   _systemClass,
-                                                   _criteria);
-
-    // Auto validation of configurations if no binary settings provided
-    xmlDomainImportContext.setAutoValidationRequired(binarySettingsAvailable);
-
-    info() << "Importing configurable domains from file " << _pfwConfiguration.settingsFile
-           << " "  << ( binarySettingsAvailable ? "without" : "with") << " settings";
-
-    _xmlDoc *doc = CXmlDocSource::mkXmlDoc(_pfwConfiguration.settingsFile, true, true, strError);
-    if (doc == NULL) {
-        return false;
-    }
-
-    if (!xmlParse(xmlDomainImportContext, &_domains, doc,
-                                            EParameterConfigurationLibrary, "SystemClassName")) {
-
-        return false;
-    }
-    // We have loaded the whole system structure, compute checksum
-    _uiStructureChecksum = _systemClass.computeStructureChecksum() +
-                           _domains.computeStructureChecksum();
-
-    // Load binary settings if any provided
-    if (binarySettingsAvailable && !_domains.serializeSettings(
-                _pfwConfiguration.binarySettingsFile, false, _uiStructureChecksum, strError)) {
-
+    try {
+        using namespace xml::serialization;
+        if (!_pfwConfiguration.settingsFile.empty()) {
+            bindings::xml::SettingsBinder binder{_domains};
+            Deserializer<ImportSource::File> test{_pfwConfiguration.settingsFile,
+                                                  binder.getBindings()};
+        }
+    } catch (std::runtime_error &e) {
+        strError = e.what();
+        warning() << "While parsing settings: " << e.what();
         return false;
     }
 
@@ -861,7 +835,7 @@ bool CParameterMgr::deleteDomain(const string& strName, string& strError)
     }
 
     // Delegate to configurable domains
-    return logResult(_domains.deleteDomain(strName, strError), strError);
+    return logResult(_domains.deleteDomain(strName), strError);
 }
 
 bool CParameterMgr::renameDomain(const string& strName, const string& strNewName, string& strError)
@@ -1129,7 +1103,7 @@ bool CParameterMgr::clearApplicationRule(const string& strDomain, const string& 
     return _domains.clearApplicationRule(strDomain, strConfiguration, strError);
 }
 
-bool CParameterMgr::importDomainsXml(const string& xmlSource, bool withSettings,
+bool CParameterMgr::importDomainsXml(const string& xmlSource, bool /**withSettings*/,
                                      bool fromFile, string& errorMsg)
 {
     // Check tuning mode
@@ -1141,8 +1115,9 @@ bool CParameterMgr::importDomainsXml(const string& xmlSource, bool withSettings,
     LOG_CONTEXT(string("Importing domains from ") +
             (fromFile ? ("\"" + xmlSource + "\"") : "a user-provided buffer"));
 
-    bool importSuccess = wrapLegacyXmlImport(xmlSource, fromFile, withSettings,
-                                             _domains, "SystemClassName", errorMsg);
+    //bool importSuccess = wrapLegacyXmlImport(xmlSource, fromFile, withSettings,
+    //                                         _domains, "SystemClassName", errorMsg);
+    bool importSuccess = false;
 
     if (importSuccess) {
 
@@ -1154,7 +1129,7 @@ bool CParameterMgr::importDomainsXml(const string& xmlSource, bool withSettings,
 }
 
 bool CParameterMgr::importSingleDomainXml(const string& xmlSource, bool overwrite,
-                                          bool withSettings, bool fromFile, string& errorMsg)
+                                          bool /**withSettings*/, bool fromFile, string& errorMsg)
 {
     if (!checkTuningModeOn(errorMsg)) {
 
@@ -1168,9 +1143,9 @@ bool CParameterMgr::importSingleDomainXml(const string& xmlSource, bool overwrit
     // context, the name will be retrieved during de-serialization
     std::auto_ptr<CConfigurableDomain> standaloneDomain(new CConfigurableDomain());
 
-    if (!wrapLegacyXmlImport(xmlSource, fromFile, withSettings, *standaloneDomain, "", errorMsg)) {
-        return false;
-    }
+    //if (!wrapLegacyXmlImport(xmlSource, fromFile, withSettings, *standaloneDomain, "", errorMsg)) {
+    //    return false;
+    //}
 
     if (!_domains.addDomain(*standaloneDomain, overwrite, errorMsg)) {
         return false;
@@ -1226,13 +1201,13 @@ bool CParameterMgr::serializeElement(std::ostream& output,
     return processSuccess;
 }
 
-bool CParameterMgr::exportDomainsXml(string& xmlDest, bool withSettings, bool toFile,
-                                     string& errorMsg) const
+bool CParameterMgr::exportDomainsXml(string& xmlDest, bool /**withSettings*/, bool toFile,
+                                     string& /**errorMsg*/) const
 {
     LOG_CONTEXT(string("Exporting domains to ") +
             (toFile ? ("\"" + xmlDest + "\"") : " a user-provided buffer"));
 
-    return wrapLegacyXmlExport(xmlDest, toFile, withSettings, _domains, errorMsg);
+    return false;//wrapLegacyXmlExport(xmlDest, toFile, withSettings, _domains, errorMsg);
 }
 
 bool CParameterMgr::exportSingleDomainXml(string& xmlDest, const string& domainName,
@@ -1242,8 +1217,8 @@ bool CParameterMgr::exportSingleDomainXml(string& xmlDest, const string& domainN
             (toFile ? ("\"" + xmlDest + "\"") : " a user-provided buffer"));
 
     // Element to be serialized
-    const CConfigurableDomain* requestedDomain =
-        _domains.findConfigurableDomain(domainName, errorMsg);
+    const CConfigurableDomain* requestedDomain = NULL;
+        //_domains.findConfigurableDomain(domainName, errorMsg);
 
     if (requestedDomain == NULL) {
         return false;
@@ -1307,15 +1282,15 @@ bool CParameterMgr::importDomainsBinary(const string& strFileName, string& strEr
     LOG_CONTEXT(string("Importing domains from binary file \"") + strFileName + "\"");
 
     // Serialize in
-    return _domains.serializeSettings(strFileName, false, _uiStructureChecksum, strError);
+    return false;//_domains.serializeSettings(strFileName, false, _uiStructureChecksum, strError);
 }
 
-bool CParameterMgr::exportDomainsBinary(const string& strFileName, string& strError)
+bool CParameterMgr::exportDomainsBinary(const string& strFileName, string& /**strError*/)
 {
     LOG_CONTEXT(string("Exporting domains to binary file \"") + strFileName + "\"");
 
     // Serialize out
-    return _domains.serializeSettings(strFileName, true, _uiStructureChecksum, strError);
+    return false;//_domains.serializeSettings(strFileName, true, _uiStructureChecksum, strError);
 }
 
 // For tuning, check we're in tuning mode

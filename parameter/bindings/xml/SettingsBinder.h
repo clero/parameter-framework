@@ -44,100 +44,23 @@ class SettingsBinder
 {
 public:
 
+    SettingsBinder(CConfigurableDomains &domains) : mDomains(domains) {}
+
     core::xml::binding::Node getBindings()
     {
-        /** Conf */
-        Node compoundRule {
-            "SelectionCriterionRule",
-            Body {
-                Attributes {
-                    { "SelectionCriterion", makeAccessor(/**mDomains.name*/) },
-                    { "MatchesWhen", makeAccessor(/**mDomains.name*/) },
-                    { "Value", makeAccessor(/**mDomains.name*/) },
-                },
-                Nodes {}
-            }
-        };
-        Node compoundRule {
-            "CompoundRule",
-            Body {
-                Attributes { { "Type", makeAccessor(/**mDomains.name*/) } },
-                Nodes { compoundRule, criterionRule }
-            }
-        };
-        Node configuration = makeConfiguration(compoundRule);
-        Node configurations = makeContainer("Configurations", configuration);
-
-        /** Elements */
-        Node configurableElement {
-            "ConfigurableElement",
-            Body { Attributes { { "Path", makeAccessor(/**mDomains.name*/) } }, Nodes {} }
-        };
-        Node configurableElements = makeContainer("ConfigurableElements", configurableElement);
-
-        /** Settings */
-        /** imake each parameters */
-        Node componentType {
-            "Subsystem",
-            Body {
-                Attributes { { "Path", makeAccessor(/**mDomains.name*/) } },
-                Nodes { bitParameter, componentType }
-            }
-        };
-        Node bitParameter /** TODO */{
-            "BitParameter",
-            Body {
-                Attributes { { "Path", makeAccessor(/**mDomains.name*/) } },
-                Nodes { bitParameter, subsystem }
-            }
-        };
-        Node configurableElementSettings {
-            "ConfigurableElement",
-            Body {
-                Attributes { { "Path", makeAccessor(/**mDomains.name*/) } },
-                Nodes { bitParameter, componentType }
-            }
-        };
-        Node configurationSettings = makeConfiguration(configurableElementSetting);
-        Node settings = makeContainer("Settings", configurationSettings);
-
-        /** Domains */
-        Node configurableDomain {
-            "ConfigurableDomain",
-            Body {
-                /** need func to create child */
-                Attributes {
-                    { "Name", makeAccessor(/**mDomains.name*/) },
-                    { "SequenceAware", makeAccessor(/**mDomains.name*/) },
-                },
-                Nodes { configurations, configurableElements, settings }
-            }
-        };
+        using namespace core::xml::binding;
         Node configurableDomains {
             "ConfigurableDomains",
-            Body {
-                Attributes {
-                    { "SystemClassName", makeAccessor(mDomains.name) },
-                },
-                Nodes { configurableDomain }
-            }
+            Body { Attributes {}, Nodes {} }
         };
+        return configurableDomains;
     }
 
 private:
 
-    xml::bindings::Node makeContainer(const std::string &name, Node &contained)
-    {
-        return { name, Body { Attributes {}, Nodes { contained } } };
-    }
-    xml::bindings::Node makeConfiguration(Nodes &contained)
-    {
-        return {
-            "Configuration",
-            Body { Attributes { { "Name", makeAccessor(/**mDomains.name*/) } }, contained }
-        };
-    }
-
     CConfigurableDomains &mDomains;
+};
 
-}
+} /** xml namespace */
+} /** bindings namespace */
+} /** core namespace */

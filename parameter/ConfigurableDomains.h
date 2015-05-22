@@ -29,20 +29,20 @@
  */
 #pragma once
 
-#include "BinarySerializableElement.h"
 #include "Results.h"
 #include <criterion/Criteria.h>
+#include "ConfigurableDomain.h"
 
 #include <set>
 #include <string>
+#include <map>
 
 
 class CParameterBlackboard;
 class CConfigurableElement;
 class CSyncerSet;
-class CConfigurableDomain;
 
-class CConfigurableDomains : public CBinarySerializableElement
+class CConfigurableDomains
 {
 public:
     CConfigurableDomains();
@@ -68,13 +68,12 @@ public:
     /**
      * Delete a domain by name
      *
-     * @param[in] strName name of the domain to be deleted
-     * @param[in,out] strError error message
+     * @param[in] name name of the domain to be deleted
      *
      * @returns true of the domain was sucessfully deleted, false otherwise (i.e.
      * the domain didn't exist).
      */
-    bool deleteDomain(const std::string& strName, std::string& strError);
+    bool deleteDomain(const std::string& name);
     void deleteAllDomains();
     bool renameDomain(const std::string& strName, const std::string& strNewName, std::string& strError);
     bool setSequenceAwareness(const std::string& strDomain, bool bSequenceAware, std::string& strError);
@@ -165,14 +164,8 @@ public:
                                      bool& bIsLastApplied,
                                      std::string& strError) const;
 
-    const CConfigurableDomain* findConfigurableDomain(const std::string& strDomain,
-                                                      std::string& strError) const;
-
     // Binary settings load/store
-    bool serializeSettings(const std::string& strBinarySettingsFilePath, bool bOut, uint8_t uiStructureChecksum, std::string& strError);
-
-    // From IXmlSource
-    virtual void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
+    //bool serializeSettings(const std::string& strBinarySettingsFilePath, bool bOut, uint8_t uiStructureChecksum, std::string& strError);
 
     // Ensure validity on whole domains from main blackboard
     void validate(const CParameterBlackboard* pMainBlackboard);
@@ -188,23 +181,66 @@ public:
                CSyncerSet& syncerSet,
                bool bForce,
                core::Results& infos) const;
-
-    // Class kind
-    virtual std::string getKind() const;
 private:
-    /** Delete a domain
-     *
-     * @param(in] configurableDomain domain to be deleted
-     * @param[in,out] strError error message
-     * @returns true of the domain was sucessfully deleted, false otherwise (i.e.
-     * the domain didn't exist).
-     */
-    void deleteDomain(CConfigurableDomain& configurableDomain);
-    // Returns true if children dynamic creation is to be dealt with
-    virtual bool childrenAreDynamic() const;
+
+    using Domains = std::map<std::string, CConfigurableDomain>;
+    Domains _domains;
+
+    inline bool notFoundDomainError(const std::string &name,
+                                    std::string &error) const;
+
+    template<typename Return, class Func, Func func, class... Args>
+    inline Return delegateToDomain(const std::string &name,
+                                   std::string &error,
+                                   Args&&... args) const
+    {
+        try {
+            return (_domains.at(name).*func)(std::forward<Args>(args)...);
+        } catch (std::out_of_range &e) {
+            return notFoundDomainError(name, error);
+        }
+    }
+
+    template<typename Return, class Func, Func func, class... Args>
+    inline Return delegateToDomain(const std::string &name,
+                                   std::string &error,
+                                   Args&&... args)
+    {
+        try {
+            return (_domains.at(name).*func)(std::forward<Args>(args)...);
+        } catch (std::out_of_range &e) {
+            return notFoundDomainError(name, error);
+        }
+    }
+
+    template<class Func, Func func, class... Args>
+    inline bool delegateToDomain(const std::string &name,
+                                 std::string &error,
+                                 Args&&... args)
+    {
+        try {
+            (_domains.at(name).*func)(std::forward<Args>(args)...);
+            return true;
+        } catch (std::out_of_range &e) {
+            return notFoundDomainError(name, error);
+        }
+    }
+
+    template<class Func, Func func, class... Args>
+    inline bool delegateToDomain(const std::string &name,
+                                 std::string &error,
+                                 Args&&... args) const
+    {
+        try {
+            (_domains.at(name).*func)(std::forward<Args>(args)...);
+            return true;
+        } catch (std::out_of_range &e) {
+            return notFoundDomainError(name, error);
+        }
+    }
+
     // Gather owned configurable elements owned by any domain
     void gatherAllOwnedConfigurableElements(std::set<const CConfigurableElement*>& configurableElementSet) const;
-    // Domain retrieval
-    CConfigurableDomain* findConfigurableDomain(const std::string& strDomain, std::string& strError);
+
 };
 
