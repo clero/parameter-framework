@@ -38,6 +38,17 @@
 #include <map>
 
 
+namespace core
+{
+namespace bindings
+{
+namespace xml
+{
+class SettingsBinder;
+} /** xml namespace */
+} /** bindings namespace */
+} /** core namespace */
+
 class CParameterBlackboard;
 class CConfigurableElement;
 class CSyncerSet;
@@ -45,6 +56,8 @@ class CSyncerSet;
 class CConfigurableDomains
 {
 public:
+    friend class core::bindings::xml::SettingsBinder;
+
     CConfigurableDomains();
 
     // Configuration/Domains handling

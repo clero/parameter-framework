@@ -38,6 +38,17 @@
 #include <map>
 #include <string>
 
+namespace core
+{
+namespace bindings
+{
+namespace xml
+{
+class SettingsBinder;
+} /** xml namespace */
+} /** bindings namespace */
+} /** core namespace */
+
 class CParameterBlackboard;
 
 class CConfigurableDomain
@@ -45,6 +56,8 @@ class CConfigurableDomain
     typedef std::list<CConfigurableElement*>::const_iterator ConfigurableElementListIterator;
     typedef std::map<const CConfigurableElement*, CSyncerSet*>::const_iterator ConfigurableElementToSyncerSetMapIterator;
 public:
+    friend class core::bindings::xml::SettingsBinder;
+
     CConfigurableDomain();
     CConfigurableDomain(const std::string& strName);
     virtual ~CConfigurableDomain();
