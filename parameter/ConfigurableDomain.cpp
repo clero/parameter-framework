@@ -621,7 +621,7 @@ bool CConfigurableDomain::createConfiguration(const string& strName, const CPara
 
     for (it = _configurableElementList.begin(); it != _configurableElementList.end(); ++it) {
 
-        const CConfigurableElement* pConfigurableElement = *it;;
+        const CConfigurableElement* pConfigurableElement = *it;
 
         // Retrieve associated syncer set
         CSyncerSet* pSyncerSet = getSyncerSet(pConfigurableElement);
