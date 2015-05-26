@@ -114,6 +114,14 @@ private:
     virtual bool fromXml(const CXmlElement& xmlElement,
                          CXmlSerializingContext& context) override
     {
+        try {
+            mCurrentNode.second.startRoutine();
+        } catch (std::bad_function_call &e) {
+            std::string error = "Start routine error for '" + mCurrentNode.first + "': " + e.what();
+            context.setError(error);
+            return false;
+        }
+
         for(auto &attribute : mCurrentNode.second.attributes) {
             std::string rawAttribute;
             if (xmlElement.hasAttribute(attribute.getName())) {
@@ -152,6 +160,15 @@ private:
                 }
             }
         }
+
+        try {
+            mCurrentNode.second.endRoutine();
+        } catch (std::bad_function_call &e) {
+            std::string error = "End routine error for '" + mCurrentNode.first + "': " + e.what();
+            context.setError(error);
+            return false;
+        }
+
         return true;
     }
 

@@ -33,6 +33,7 @@
 
 #include <map>
 #include <string>
+#include <functional>
 
 namespace core
 {
@@ -49,11 +50,23 @@ struct Body;
 /** Nodes should be retrieved easily thanks to their tag */
 using Nodes = std::map<Tag, Body>;
 
+/** Type of functor which will be called just before Node creation */
+using Routine = std::function<void()>;
+
 /** Xml Node representation */
 struct Body
 {
+    Body(Routine r, Attributes a, Nodes c, Routine e) :
+        startRoutine(r), attributes(a), childs(c), endRoutine(e) {}
+    /** TODO: test if exceptions raised when calling empty routine  */
+    Body(Attributes a, Nodes c) : Body(Routine{[](){}}, a, c, Routine{[](){}}) {}
+    Body(Routine r, Attributes a, Nodes c) : Body(r, a, c, Routine{[](){}}) {}
+    Body(Attributes a, Nodes c, Routine e) : Body(Routine{[](){}}, a, c, e) {}
+
+    Routine startRoutine;
     Attributes attributes;
     Nodes childs;
+    Routine endRoutine;
 };
 
 using Node = std::pair<Tag, Body>;

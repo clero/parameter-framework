@@ -32,6 +32,8 @@
 #include <xmlserializer/Node.h>
 
 #include <string>
+#include <list>
+#include <functional>
 
 namespace core
 {
@@ -44,14 +46,49 @@ class SettingsBinder
 {
 public:
 
-    SettingsBinder(CConfigurableDomains &domains) : mDomains(domains) {}
+    SettingsBinder(CConfigurableDomains &domains) : mDomains(domains), mRawDomains{} {}
 
     core::xml::binding::Node getBindings()
     {
         using namespace core::xml::binding;
+        /** Domains */
+        Node configurableDomain {
+            "ConfigurableDomain",
+            Body {
+                Routine { [this] () { mRawDomains.emplace_back(); } },
+                Attributes {
+                    {
+                        "Name",
+                        Type<std::string>{},
+                        [this](){ return ""; },
+                        [this](std::string name){ mRawDomains.back()._name = name; }
+                    },
+                    {
+                        "SequenceAware",
+                        Type<bool>{},
+                        [this](){ return false; },
+                        [this](bool sequenceAware){ mRawDomains.back()._bSequenceAware = sequenceAware; }
+                    }
+                },
+                Nodes { /**configurations, configurableElements, settings*/ }
+            }
+        };
         Node configurableDomains {
             "ConfigurableDomains",
-            Body { Attributes {}, Nodes {} }
+            Body {
+                Attributes {},
+                Nodes {configurableDomain},
+                Routine {
+                    [this] () {
+                        for (auto &domain : mRawDomains) {
+                            std::string error;
+                            if (!mDomains.addDomain(domain, false, error)) {
+                                throw std::invalid_argument(error);
+                            }
+                        }
+                    }
+                }
+            }
         };
         return configurableDomains;
     }
@@ -59,7 +96,36 @@ public:
 private:
 
     CConfigurableDomains &mDomains;
+    std::list<CConfigurableDomain> mRawDomains;
 };
+
+//class DomainBinder
+//{
+//
+//    core::xml::binding::Node getBindings()
+//    {
+//        using namespace core::xml::binding;
+//        /** Domains */
+//        Node configurableDomain {
+//            "ConfigurableDomain",
+//            Body {
+//                /** need func to create child */
+//                //Routine {
+//                //    [this] (const std::string& name) {
+//                //        std::string error;
+//                //        if (!mDomains.createDomain(name, error)) {
+//                //            throw std::invalid_argument(error);
+//                //        }
+//                //    }
+//                //},
+//                Attributes {
+//                    { "Name", makeAccessor(mDomains._domains.at(name)._name) },
+//                    { "SequenceAware", makeAccessor(mDomains._domains.at(name)._bSequenceAware) },
+//                },
+//                Nodes { configurations, configurableElements, settings }
+//            }
+//        };
+//}
 
 } /** xml namespace */
 } /** bindings namespace */
