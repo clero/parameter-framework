@@ -29,9 +29,8 @@
  */
 #pragma once
 
-#include "BinarySerializableElement.h"
-#include "XmlSerializingContext.h"
-#include "XmlDomainImportContext.h"
+#include "ConfigurableElement.h"
+#include "DomainConfiguration.h"
 #include "SyncerSet.h"
 #include "Results.h"
 #include <list>
@@ -39,11 +38,9 @@
 #include <map>
 #include <string>
 
-class CConfigurableElement;
-class CDomainConfiguration;
 class CParameterBlackboard;
 
-class CConfigurableDomain : public CBinarySerializableElement
+class CConfigurableDomain
 {
     typedef std::list<CConfigurableElement*>::const_iterator ConfigurableElementListIterator;
     typedef std::map<const CConfigurableElement*, CSyncerSet*>::const_iterator ConfigurableElementToSyncerSetMapIterator;
@@ -151,16 +148,13 @@ public:
     // Return applicable configuration validity for given configurable element
     bool isApplicableConfigurationValid(const CConfigurableElement* pConfigurableElement) const;
 
-    // From IXmlSink
-    virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext);
-
-    // From IXmlSource
-    virtual void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
-    virtual void childrenToXml(CXmlElement& xmlElement,
-                               CXmlSerializingContext& serializingContext) const;
-
     // Class kind
     virtual std::string getKind() const;
+
+    std::string getName() const { return _name; }
+
+    /** TODO */
+    void listConfigurations(std::string &configurations) const;
 
 protected:
     // Content dumping
@@ -222,46 +216,6 @@ private:
 
     void doRemoveConfigurableElement(CConfigurableElement* pConfigurableElement, bool bRecomputeSyncSet);
 
-    // XML parsing
-    /**
-     * Deserialize domain configurations from an Xml document and add them to
-     * the domain.
-     *
-     * @param[in] xmlElement the XML element to be parsed
-     * @param[in] serializingContext context for the deserialization
-     *
-     * @return false if an error occurs, true otherwise.
-     */
-    bool parseDomainConfigurations(const CXmlElement& xmlElement,
-                                   CXmlDomainImportContext& serializingContext);
-    /**
-     * Deserialize domain elements from an Xml document and add them to
-     * the domain.
-     *
-     * @param[in] xmlElement the XML element to be parsed
-     * @param[in] serializingContext context for the deserialization
-     *
-     * @return false if an error occurs, true otherwise.
-     */
-    bool parseConfigurableElements(const CXmlElement& xmlElement,
-                                   CXmlDomainImportContext& serializingContext);
-    /**
-     * Deserialize settings from an Xml document and add them to
-     * the domain.
-     *
-     * @param[in] xmlElement the XML element to be parsed
-     * @param[in] xmlDomainImportContext context for the deserialization
-     *
-     * @return false if an error occurs, true otherwise.
-     */
-    bool parseSettings(const CXmlElement& xmlElement,
-                       CXmlDomainImportContext& serializingContext);
-
-    // XML composing
-    void composeDomainConfigurations(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
-    void composeConfigurableElements(CXmlElement& xmlElement) const;
-    void composeSettings(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
-
     // Syncer set retrieval from configurable element
     CSyncerSet* getSyncerSet(const CConfigurableElement* pConfigurableElement) const;
 
@@ -283,5 +237,12 @@ private:
 
     // Last applied configuration
     mutable const CDomainConfiguration* _pLastAppliedConfiguration;
+
+    /** Domain name */
+    std::string _name;
+
+    using Configurations = std::map<std::string, CDomainConfiguration>;
+
+    Configurations _configurations;
 };
 

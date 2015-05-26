@@ -36,8 +36,7 @@
 #include "XmlDomainExportContext.h"
 #include "Utility.h"
 #include <assert.h>
-
-#define base CBinarySerializableElement
+#include <stdexcept>
 
 using std::string;
 
@@ -46,7 +45,8 @@ CConfigurableDomain::CConfigurableDomain() :
 {
 }
 
-CConfigurableDomain::CConfigurableDomain(const string& strName) : base(strName), _bSequenceAware(false), _pLastAppliedConfiguration(NULL)
+CConfigurableDomain::CConfigurableDomain(const string& strName) :
+    _bSequenceAware(false), _pLastAppliedConfiguration(NULL), _name(strName), _configurations{}
 {
 }
 
@@ -114,249 +114,249 @@ bool CConfigurableDomain::getSequenceAwareness() const
     return _bSequenceAware;
 }
 
-// From IXmlSource
-void CConfigurableDomain::toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
-{
-    base::toXml(xmlElement, serializingContext);
-
-    // Sequence awareness
-    xmlElement.setAttribute("SequenceAware", _bSequenceAware);
-}
-
-void CConfigurableDomain::childrenToXml(CXmlElement& xmlElement,
-                                        CXmlSerializingContext& serializingContext) const
-{
-    // Configurations
-    composeDomainConfigurations(xmlElement, serializingContext);
-
-    // Configurable Elements
-    composeConfigurableElements(xmlElement);
-
-    // Settings
-    composeSettings(xmlElement, serializingContext);
-}
-
+//// From IXmlSource
+//void CConfigurableDomain::toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
+//{
+//    base::toXml(xmlElement, serializingContext);
+//
+//    // Sequence awareness
+//    xmlElement.setAttribute("SequenceAware", _bSequenceAware);
+//}
+//
+//void CConfigurableDomain::childrenToXml(CXmlElement& xmlElement,
+//                                        CXmlSerializingContext& serializingContext) const
+//{
+//    // Configurations
+//    composeDomainConfigurations(xmlElement, serializingContext);
+//
+//    // Configurable Elements
+//    composeConfigurableElements(xmlElement);
+//
+//    // Settings
+//    composeSettings(xmlElement, serializingContext);
+//}
+//
 // XML composing
-void CConfigurableDomain::composeDomainConfigurations(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
-{
-    // Create Configurations element
-    CXmlElement xmlConfigurationsElement;
-
-    xmlElement.createChild(xmlConfigurationsElement, "Configurations");
-
-    // Delegate to base
-    base::childrenToXml(xmlConfigurationsElement, serializingContext);
-}
-
-void CConfigurableDomain::composeConfigurableElements(CXmlElement& xmlElement) const
-{
-    // Create ConfigurableElements element
-    CXmlElement xmlConfigurableElementsElement;
-
-    xmlElement.createChild(xmlConfigurableElementsElement, "ConfigurableElements");
-
-    // Serialize out all configurable elements settings
-    ConfigurableElementListIterator it;
-
-    for (it = _configurableElementList.begin(); it != _configurableElementList.end(); ++it) {
-
-        const CConfigurableElement* pConfigurableElement = *it;
-
-        // Create corresponding XML child element
-        CXmlElement xmlChildConfigurableElement;
-
-        xmlConfigurableElementsElement.createChild(xmlChildConfigurableElement, "ConfigurableElement");
-
-        // Set Path attribute
-        xmlChildConfigurableElement.setAttribute("Path", pConfigurableElement->getPath());
-    }
-}
-
-void CConfigurableDomain::composeSettings(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
-{
-    // Context
-    const CXmlDomainExportContext& xmlDomainExportContext =
-        static_cast<const CXmlDomainExportContext&>(serializingContext);
-
-    if (!xmlDomainExportContext.withSettings()) {
-
-        return;
-    }
-
-    // Create Settings element
-    CXmlElement xmlSettingsElement;
-
-    xmlElement.createChild(xmlSettingsElement, "Settings");
-
-    // Serialize out all configurations settings
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChildConfiguration;
-
-    for (uiChildConfiguration = 0; uiChildConfiguration < uiNbConfigurations; uiChildConfiguration++) {
-
-        const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(getChild(uiChildConfiguration));
-
-        // Create child xml element for that configuration
-        CXmlElement xmlConfigurationSettingsElement;
-
-        xmlSettingsElement.createChild(xmlConfigurationSettingsElement, pDomainConfiguration->getKind());
-
-        // Set its name attribute
-        xmlConfigurationSettingsElement.setNameAttribute(pDomainConfiguration->getName());
-
-        // Serialize out configuration settings
-        pDomainConfiguration->composeSettings(xmlConfigurationSettingsElement, serializingContext);
-    }
-}
-
-// From IXmlSink
-bool CConfigurableDomain::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
-{
-    // Context
-    CXmlDomainImportContext& xmlDomainImportContext =
-        static_cast<CXmlDomainImportContext&>(serializingContext);
-
-    // Sequence awareness (optional)
-    xmlElement.getAttribute("SequenceAware", _bSequenceAware);
-
-    std::string name;
-    xmlElement.getAttribute("Name", name);
-    setName(name);
-
-    // Local parsing. Do not dig
-    if (!parseDomainConfigurations(xmlElement, xmlDomainImportContext) ||
-        !parseConfigurableElements(xmlElement, xmlDomainImportContext) ||
-        !parseSettings(xmlElement, xmlDomainImportContext)) {
-
-        return false;
-    }
-
-    // All provided configurations are parsed
-    // Attempt validation on areas of non provided configurations for all configurable elements if required
-    if (xmlDomainImportContext.autoValidationRequired()) {
-
-        autoValidateAll();
-    }
-
-    return true;
-}
-
-// XML parsing
-bool CConfigurableDomain::parseDomainConfigurations(const CXmlElement& xmlElement,
-                                                    CXmlDomainImportContext& serializingContext)
-{
-    // We're supposedly clean
-    assert(_configurableElementList.empty());
-
-    // Get Configurations element
-    CXmlElement xmlConfigurationsElement;
-
-    xmlElement.getChildElement("Configurations", xmlConfigurationsElement);
-
-    // Parse it and create domain configuration objects
-    return base::fromXml(xmlConfigurationsElement, serializingContext);
-}
-
-// Parse configurable elements
-bool CConfigurableDomain::parseConfigurableElements(const CXmlElement& xmlElement,
-                                                    CXmlDomainImportContext& serializingContext)
-{
-    CSystemClass& systemClass = serializingContext.getSystemClass();
-
-    // Get ConfigurableElements element
-    CXmlElement xmlConfigurableElementsElement;
-    xmlElement.getChildElement("ConfigurableElements", xmlConfigurableElementsElement);
-
-    // Parse it and associate found configurable elements to it
-    CXmlElement::CChildIterator it(xmlConfigurableElementsElement);
-
-    CXmlElement xmlConfigurableElementElement;
-
-    while (it.next(xmlConfigurableElementElement)) {
-
-        // Locate configurable element
-        string strConfigurableElementPath;
-        xmlConfigurableElementElement.getAttribute("Path", strConfigurableElementPath);
-
-        CPathNavigator pathNavigator(strConfigurableElementPath);
-        string strError;
-
-        // Is there an element and does it match system class name?
-        if (!pathNavigator.navigateThrough(systemClass.getName(), strError)) {
-
-            serializingContext.setError("Could not find configurable element of path " + strConfigurableElementPath + " from ConfigurableDomain description " + getName() + " (" + strError + ")");
-
-            return false;
-        }
-        // Browse system class for configurable element
-        CConfigurableElement* pConfigurableElement =
-            static_cast<CConfigurableElement*>(systemClass.findDescendant(pathNavigator));
-
-        if (!pConfigurableElement) {
-
-            serializingContext.setError("Could not find configurable element of path " + strConfigurableElementPath + " from ConfigurableDomain description " + getName());
-
-            return false;
-        }
-        // Add found element to domain
-        core::Results infos;
-        if (!addConfigurableElement(pConfigurableElement, NULL, infos)) {
-
-            CUtility::asString(infos, strError);
-            serializingContext.setError(strError);
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// Parse settings
-bool CConfigurableDomain::parseSettings(const CXmlElement& xmlElement,
-                                        CXmlDomainImportContext& serializingContext)
-{
-    // Check we actually need to parse configuration settings
-    if (!serializingContext.withSettings()) {
-
-        // No parsing required
-        return true;
-    }
-
-    // Get Settings element
-    CXmlElement xmlSettingsElement;
-    if (!xmlElement.getChildElement("Settings", xmlSettingsElement)) {
-
-        // No settings, bail out successfully
-        return true;
-    }
-
-    // Parse configuration settings
-    CXmlElement::CChildIterator it(xmlSettingsElement);
-
-    CXmlElement xmlConfigurationSettingsElement;
-
-    while (it.next(xmlConfigurationSettingsElement)) {
-        // Get domain configuration
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(findChild(xmlConfigurationSettingsElement.getNameAttribute()));
-
-        if (!pDomainConfiguration) {
-
-            serializingContext.setError("Could not find domain configuration referred to by"
-                                        " configurable domain \"" + getName() + "\".");
-
-            return false;
-        }
-        // Have domain configuration parse settings for all configurable elements
-        if (!pDomainConfiguration->parseSettings(xmlConfigurationSettingsElement,
-                                                 serializingContext)) {
-
-            return false;
-        }
-    }
-
-    return true;
-}
+//void CConfigurableDomain::composeDomainConfigurations(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
+//{
+//    // Create Configurations element
+//    CXmlElement xmlConfigurationsElement;
+//
+//    xmlElement.createChild(xmlConfigurationsElement, "Configurations");
+//
+//    // Delegate to base
+//    base::childrenToXml(xmlConfigurationsElement, serializingContext);
+//}
+//
+//void CConfigurableDomain::composeConfigurableElements(CXmlElement& xmlElement) const
+//{
+//    // Create ConfigurableElements element
+//    CXmlElement xmlConfigurableElementsElement;
+//
+//    xmlElement.createChild(xmlConfigurableElementsElement, "ConfigurableElements");
+//
+//    // Serialize out all configurable elements settings
+//    ConfigurableElementListIterator it;
+//
+//    for (it = _configurableElementList.begin(); it != _configurableElementList.end(); ++it) {
+//
+//        const CConfigurableElement* pConfigurableElement = *it;
+//
+//        // Create corresponding XML child element
+//        CXmlElement xmlChildConfigurableElement;
+//
+//        xmlConfigurableElementsElement.createChild(xmlChildConfigurableElement, "ConfigurableElement");
+//
+//        // Set Path attribute
+//        xmlChildConfigurableElement.setAttribute("Path", pConfigurableElement->getPath());
+//    }
+//}
+//
+//void CConfigurableDomain::composeSettings(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
+//{
+//    // Context
+//    const CXmlDomainExportContext& xmlDomainExportContext =
+//        static_cast<const CXmlDomainExportContext&>(serializingContext);
+//
+//    if (!xmlDomainExportContext.withSettings()) {
+//
+//        return;
+//    }
+//
+//    // Create Settings element
+//    CXmlElement xmlSettingsElement;
+//
+//    xmlElement.createChild(xmlSettingsElement, "Settings");
+//
+//    // Serialize out all configurations settings
+//    size_t uiNbConfigurations = getNbChildren();
+//    size_t uiChildConfiguration;
+//
+//    for (uiChildConfiguration = 0; uiChildConfiguration < uiNbConfigurations; uiChildConfiguration++) {
+//
+//        const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(getChild(uiChildConfiguration));
+//
+//        // Create child xml element for that configuration
+//        CXmlElement xmlConfigurationSettingsElement;
+//
+//        xmlSettingsElement.createChild(xmlConfigurationSettingsElement, pDomainConfiguration->getKind());
+//
+//        // Set its name attribute
+//        xmlConfigurationSettingsElement.setNameAttribute(pDomainConfiguration->getName());
+//
+//        // Serialize out configuration settings
+//        pDomainConfiguration->composeSettings(xmlConfigurationSettingsElement, serializingContext);
+//    }
+//}
+//
+//// From IXmlSink
+//bool CConfigurableDomain::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
+//{
+//    // Context
+//    CXmlDomainImportContext& xmlDomainImportContext =
+//        static_cast<CXmlDomainImportContext&>(serializingContext);
+//
+//    // Sequence awareness (optional)
+//    xmlElement.getAttribute("SequenceAware", _bSequenceAware);
+//
+//    std::string name;
+//    xmlElement.getAttribute("Name", name);
+//    setName(name);
+//
+//    // Local parsing. Do not dig
+//    if (!parseDomainConfigurations(xmlElement, xmlDomainImportContext) ||
+//        !parseConfigurableElements(xmlElement, xmlDomainImportContext) ||
+//        !parseSettings(xmlElement, xmlDomainImportContext)) {
+//
+//        return false;
+//    }
+//
+//    // All provided configurations are parsed
+//    // Attempt validation on areas of non provided configurations for all configurable elements if required
+//    if (xmlDomainImportContext.autoValidationRequired()) {
+//
+//        autoValidateAll();
+//    }
+//
+//    return true;
+//}
+//
+//// XML parsing
+//bool CConfigurableDomain::parseDomainConfigurations(const CXmlElement& xmlElement,
+//                                                    CXmlDomainImportContext& serializingContext)
+//{
+//    // We're supposedly clean
+//    assert(_configurableElementList.empty());
+//
+//    // Get Configurations element
+//    CXmlElement xmlConfigurationsElement;
+//
+//    xmlElement.getChildElement("Configurations", xmlConfigurationsElement);
+//
+//    // Parse it and create domain configuration objects
+//    return base::fromXml(xmlConfigurationsElement, serializingContext);
+//}
+//
+//// Parse configurable elements
+//bool CConfigurableDomain::parseConfigurableElements(const CXmlElement& xmlElement,
+//                                                    CXmlDomainImportContext& serializingContext)
+//{
+//    CSystemClass& systemClass = serializingContext.getSystemClass();
+//
+//    // Get ConfigurableElements element
+//    CXmlElement xmlConfigurableElementsElement;
+//    xmlElement.getChildElement("ConfigurableElements", xmlConfigurableElementsElement);
+//
+//    // Parse it and associate found configurable elements to it
+//    CXmlElement::CChildIterator it(xmlConfigurableElementsElement);
+//
+//    CXmlElement xmlConfigurableElementElement;
+//
+//    while (it.next(xmlConfigurableElementElement)) {
+//
+//        // Locate configurable element
+//        string strConfigurableElementPath;
+//        xmlConfigurableElementElement.getAttribute("Path", strConfigurableElementPath);
+//
+//        CPathNavigator pathNavigator(strConfigurableElementPath);
+//        string strError;
+//
+//        // Is there an element and does it match system class name?
+//        if (!pathNavigator.navigateThrough(systemClass.getName(), strError)) {
+//
+//            serializingContext.setError("Could not find configurable element of path " + strConfigurableElementPath + " from ConfigurableDomain description " + getName() + " (" + strError + ")");
+//
+//            return false;
+//        }
+//        // Browse system class for configurable element
+//        CConfigurableElement* pConfigurableElement =
+//            static_cast<CConfigurableElement*>(systemClass.findDescendant(pathNavigator));
+//
+//        if (!pConfigurableElement) {
+//
+//            serializingContext.setError("Could not find configurable element of path " + strConfigurableElementPath + " from ConfigurableDomain description " + getName());
+//
+//            return false;
+//        }
+//        // Add found element to domain
+//        core::Results infos;
+//        if (!addConfigurableElement(pConfigurableElement, NULL, infos)) {
+//
+//            CUtility::asString(infos, strError);
+//            serializingContext.setError(strError);
+//
+//            return false;
+//        }
+//    }
+//
+//    return true;
+//}
+//
+//// Parse settings
+//bool CConfigurableDomain::parseSettings(const CXmlElement& xmlElement,
+//                                        CXmlDomainImportContext& serializingContext)
+//{
+//    // Check we actually need to parse configuration settings
+//    if (!serializingContext.withSettings()) {
+//
+//        // No parsing required
+//        return true;
+//    }
+//
+//    // Get Settings element
+//    CXmlElement xmlSettingsElement;
+//    if (!xmlElement.getChildElement("Settings", xmlSettingsElement)) {
+//
+//        // No settings, bail out successfully
+//        return true;
+//    }
+//
+//    // Parse configuration settings
+//    CXmlElement::CChildIterator it(xmlSettingsElement);
+//
+//    CXmlElement xmlConfigurationSettingsElement;
+//
+//    while (it.next(xmlConfigurationSettingsElement)) {
+//        // Get domain configuration
+//        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(findChild(xmlConfigurationSettingsElement.getNameAttribute()));
+//
+//        if (!pDomainConfiguration) {
+//
+//            serializingContext.setError("Could not find domain configuration referred to by"
+//                                        " configurable domain \"" + getName() + "\".");
+//
+//            return false;
+//        }
+//        // Have domain configuration parse settings for all configurable elements
+//        if (!pDomainConfiguration->parseSettings(xmlConfigurationSettingsElement,
+//                                                 serializingContext)) {
+//
+//            return false;
+//        }
+//    }
+//
+//    return true;
+//}
 // Configurable elements association
 bool CConfigurableDomain::addConfigurableElement(CConfigurableElement* pConfigurableElement,
                                                  const CParameterBlackboard* pMainBlackboard,
@@ -429,35 +429,32 @@ CParameterBlackboard* CConfigurableDomain::findConfigurationBlackboard(const str
                                                                        bool& bIsLastApplied,
                                                                        string& strError) const
 {
-    // Find Configuration
-    const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(findChild(strConfiguration));
+    try {
+        // Find Configuration
+        const CDomainConfiguration &configuration = _configurations.at(strConfiguration);
 
-    if (!pDomainConfiguration) {
+        // Parse all configurable elements
+        ConfigurableElementListIterator it;
 
-        strError = "Domain configuration " + strConfiguration + " not found";
+        for (it = _configurableElementList.begin(); it != _configurableElementList.end(); ++it) {
 
-        return NULL;
-    }
+            const CConfigurableElement* pAssociatedConfigurableElement = *it;
 
-    // Parse all configurable elements
-    ConfigurableElementListIterator it;
+            // Check if the the associated element is the configurable element or one of its ancestors
+            if ((pCandidateDescendantConfigurableElement == pAssociatedConfigurableElement) ||
+                (pCandidateDescendantConfigurableElement->isDescendantOf(pAssociatedConfigurableElement))) {
 
-    for (it = _configurableElementList.begin(); it != _configurableElementList.end(); ++it) {
+                uiBaseOffset = pAssociatedConfigurableElement->getOffset();
+                bIsLastApplied = (&configuration == _pLastAppliedConfiguration);
 
-        const CConfigurableElement* pAssociatedConfigurableElement = *it;
-
-        // Check if the the associated element is the configurable element or one of its ancestors
-        if ((pCandidateDescendantConfigurableElement == pAssociatedConfigurableElement) ||
-            (pCandidateDescendantConfigurableElement->isDescendantOf(pAssociatedConfigurableElement))) {
-
-            uiBaseOffset = pAssociatedConfigurableElement->getOffset();
-            bIsLastApplied = (pDomainConfiguration == _pLastAppliedConfiguration);
-
-            return pDomainConfiguration->getBlackboard(pAssociatedConfigurableElement);
+                return configuration.getBlackboard(pAssociatedConfigurableElement);
+            }
         }
-    }
 
-    strError = "Element not associated to the Domain";
+        strError = "Element not associated to the Domain";
+    } catch (std::out_of_range &e) {
+        strError = "Domain configuration " + strConfiguration + " not found";
+    }
 
     return NULL;
 }
@@ -498,13 +495,8 @@ bool CConfigurableDomain::split(CConfigurableElement* pConfigurableElement,
     }
 
     // Delegate to configurations
-    size_t uiNbConfigurations = getNbChildren();
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        pDomainConfiguration->split(pConfigurableElement);
+    for (auto &configuration : _configurations) {
+        configuration.second.split(pConfigurableElement);
     }
 
     // Remove given configurable element from this domain
@@ -605,16 +597,13 @@ void CConfigurableDomain::computeSyncSet()
 // Configuration Management
 bool CConfigurableDomain::createConfiguration(const string& strName, const CParameterBlackboard* pMainBlackboard, string& strError)
 {
-    // Already exists?
-    if (findChild(strName)) {
 
+    auto generatedConfiguration = _configurations.emplace(strName, CDomainConfiguration{strName});
+    if (!generatedConfiguration.second) {
         strError = "Already existing configuration";
-
         return false;
     }
-
-    // Creation
-    CDomainConfiguration* pDomainConfiguration = new CDomainConfiguration(strName);
+    CDomainConfiguration &configuration = (*generatedConfiguration.first).second;
 
     // Configurable elements association
     ConfigurableElementListIterator it;
@@ -627,18 +616,15 @@ bool CConfigurableDomain::createConfiguration(const string& strName, const CPara
         CSyncerSet* pSyncerSet = getSyncerSet(pConfigurableElement);
 
         // Associate to configuration
-        pDomainConfiguration->addConfigurableElement(pConfigurableElement, pSyncerSet);
+        configuration.addConfigurableElement(pConfigurableElement, pSyncerSet);
     }
-
-    // Hierarchy
-    addChild(pDomainConfiguration);
 
     // Ensure validity of fresh new domain configuration
     // Attempt auto validation, so that the user gets his/her own settings by defaults
-    if (!autoValidateConfiguration(pDomainConfiguration)) {
+    if (!autoValidateConfiguration(&configuration)) {
 
         // No valid configuration found to copy in from, validate againt main blackboard (will concerned remaining invalid parts)
-        pDomainConfiguration->validate(pMainBlackboard);
+        configuration.validate(pMainBlackboard);
     }
 
     return true;
@@ -659,12 +645,7 @@ bool CConfigurableDomain::deleteConfiguration(const string& strName, string& str
         // Forget about it
         _pLastAppliedConfiguration = NULL;
     }
-
-    // Hierarchy
-    removeChild(pDomainConfiguration);
-
-    // Destroy
-    delete pDomainConfiguration;
+    _configurations.erase(strName);
 
     return true;
 }
@@ -846,31 +827,16 @@ string CConfigurableDomain::getPendingConfigurationName() const
 // Ensure validity on whole domain from main blackboard
 void CConfigurableDomain::validate(const CParameterBlackboard* pMainBlackboard)
 {
-
-    // Propagate
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        pDomainConfiguration->validate(pMainBlackboard);
+    for (auto &configuration : _configurations) {
+        configuration.second.validate(pMainBlackboard);
     }
 }
 
 // Ensure validity on areas related to configurable element
 void CConfigurableDomain::validateAreas(const CConfigurableElement* pConfigurableElement, const CParameterBlackboard* pMainBlackboard)
 {
-    // Propagate
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        pDomainConfiguration->validate(pConfigurableElement, pMainBlackboard);
+    for (auto &configuration : _configurations) {
+        configuration.second.validate(pConfigurableElement, pMainBlackboard);
     }
 }
 
@@ -903,16 +869,12 @@ void CConfigurableDomain::autoValidateAreas(const CConfigurableElement* pConfigu
     }
 
     // Validate all other configurations against found one, if any
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
+    for (auto &configuration : _configurations) {
 
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        if (pDomainConfiguration != pValidDomainConfiguration && !pDomainConfiguration->isValid(pConfigurableElement)) {
+        if (&configuration.second != pValidDomainConfiguration &&
+                !configuration.second.isValid(pConfigurableElement)) {
             // Validate
-            pDomainConfiguration->validateAgainst(pValidDomainConfiguration, pConfigurableElement);
+            configuration.second.validateAgainst(pValidDomainConfiguration, pConfigurableElement);
         }
     }
 }
@@ -921,17 +883,12 @@ void CConfigurableDomain::autoValidateAreas(const CConfigurableElement* pConfigu
 bool CConfigurableDomain::autoValidateConfiguration(CDomainConfiguration* pDomainConfiguration)
 {
     // Find another configuration than this one, that ought to be valid!
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
+    for (auto &potentialValidConf : _configurations) {
 
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        const CDomainConfiguration* pPotententialValidDomainConfiguration = static_cast<const CDomainConfiguration*>(getChild(uiChild));
-
-        if (pPotententialValidDomainConfiguration != pDomainConfiguration) {
+        if (&potentialValidConf.second != pDomainConfiguration) {
 
             // Validate against it
-            pDomainConfiguration->validateAgainst(pPotententialValidDomainConfiguration);
+            pDomainConfiguration->validateAgainst(&potentialValidConf.second);
 
             return true;
         }
@@ -942,16 +899,11 @@ bool CConfigurableDomain::autoValidateConfiguration(CDomainConfiguration* pDomai
 // Search for a valid configuration for given configurable element
 const CDomainConfiguration* CConfigurableDomain::findValidDomainConfiguration(const CConfigurableElement* pConfigurableElement) const
 {
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
+    for (auto &configuration : _configurations) {
 
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
+        if (configuration.second.isValid(pConfigurableElement)) {
 
-        const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(getChild(uiChild));
-
-        if (pDomainConfiguration->isValid(pConfigurableElement)) {
-
-            return pDomainConfiguration;
+            return &configuration.second;
         }
     }
     return NULL;
@@ -960,16 +912,11 @@ const CDomainConfiguration* CConfigurableDomain::findValidDomainConfiguration(co
 // Search for an applicable configuration
 const CDomainConfiguration* CConfigurableDomain::findApplicableDomainConfiguration() const
 {
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
+    for (auto &configuration : _configurations) {
 
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
+        if (configuration.second.isApplicable()) {
 
-        const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(getChild(uiChild));
-
-        if (pDomainConfiguration->isApplicable()) {
-
-            return pDomainConfiguration;
+            return &configuration.second;
         }
     }
     return NULL;
@@ -1041,15 +988,8 @@ void CConfigurableDomain::mergeAlreadyAssociatedDescendantConfigurableElements(
 void CConfigurableDomain::mergeConfigurations(CConfigurableElement* pToConfigurableElement, CConfigurableElement* pFromConfigurableElement)
 {
     // Propagate to domain configurations
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        // Do the merge.
-        pDomainConfiguration->merge(pToConfigurableElement, pFromConfigurableElement);
+    for (auto &configuration : _configurations) {
+        configuration.second.merge(pToConfigurableElement, pFromConfigurableElement);
     }
 }
 
@@ -1074,14 +1014,8 @@ void CConfigurableDomain::doAddConfigurableElement(CConfigurableElement* pConfig
     _syncerSet += *pSyncerSet;
 
     // Inform configurations
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        pDomainConfiguration->addConfigurableElement(pConfigurableElement, pSyncerSet);
+    for (auto &configuration: _configurations) {
+        configuration.second.addConfigurableElement(pConfigurableElement, pSyncerSet);
     }
 
     // Ensure area validity for that configurable element (if main blackboard provided)
@@ -1116,15 +1050,8 @@ void CConfigurableDomain::doRemoveConfigurableElement(CConfigurableElement* pCon
     // Inform configurable element
     pConfigurableElement->removeAttachedConfigurableDomain(this);
 
-    // Inform configurations
-    size_t uiNbConfigurations = getNbChildren();
-    size_t uiChild;
-
-    for (uiChild = 0; uiChild < uiNbConfigurations; uiChild++) {
-
-        CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(getChild(uiChild));
-
-        pDomainConfiguration->removeConfigurableElement(pConfigurableElement);
+    for (auto &configuration : _configurations) {
+        configuration.second.removeConfigurableElement(pConfigurableElement);
     }
     // Recompute our sync set if needed
     if (bRecomputeSyncSet) {
@@ -1146,26 +1073,28 @@ CSyncerSet* CConfigurableDomain::getSyncerSet(const CConfigurableElement* pConfi
 // Configuration retrieval
 CDomainConfiguration* CConfigurableDomain::findConfiguration(const string& strConfiguration, string& strError)
 {
-    CDomainConfiguration* pDomainConfiguration = static_cast<CDomainConfiguration*>(findChild(strConfiguration));
-
-    if (!pDomainConfiguration) {
-
+    try {
+        return &_configurations.at(strConfiguration);
+    } catch (std::out_of_range &e) {
         strError = "Domain configuration " + strConfiguration + " not found";
-
         return NULL;
     }
-    return pDomainConfiguration;
 }
 
 const CDomainConfiguration* CConfigurableDomain::findConfiguration(const string& strConfiguration, string& strError) const
 {
-    const CDomainConfiguration* pDomainConfiguration = static_cast<const CDomainConfiguration*>(findChild(strConfiguration));
-
-    if (!pDomainConfiguration) {
-
+    try {
+        return &_configurations.at(strConfiguration);
+    } catch (std::out_of_range &e) {
         strError = "Domain configuration " + strConfiguration + " not found";
-
         return NULL;
     }
-    return pDomainConfiguration;
+}
+
+void CConfigurableDomain::listConfigurations(std::string &configurations) const
+{
+    configurations = "";
+    for(auto &configuration : _configurations) {
+        configurations += configuration.first + "\n";
+    }
 }

@@ -154,7 +154,7 @@ bool CConfigurableDomains::getSequenceAwareness(const string& strDomain, bool& b
 /// Configurations
 bool CConfigurableDomains::listConfigurations(const string& strDomain, string& strResult) const
 {
-    return DELEGATE_DOMAIN(strDomain, strResult, listChildren, strResult);
+    return DELEGATE_DOMAIN(strDomain, strResult, listConfigurations, strResult);
 }
 
 bool CConfigurableDomains::createConfiguration(const string& strDomain, const string& strConfiguration, const CParameterBlackboard* pMainBlackboard, string& strError)

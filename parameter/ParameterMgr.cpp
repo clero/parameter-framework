@@ -1211,7 +1211,7 @@ bool CParameterMgr::exportDomainsXml(string& xmlDest, bool /**withSettings*/, bo
 }
 
 bool CParameterMgr::exportSingleDomainXml(string& xmlDest, const string& domainName,
-                                          bool withSettings, bool toFile, string& errorMsg) const
+                                          bool /**withSettings*/, bool toFile, string& /**errorMsg*/) const
 {
     LOG_CONTEXT(string("Exporting single domain '") + domainName + "' to " +
             (toFile ? ("\"" + xmlDest + "\"") : " a user-provided buffer"));
@@ -1224,7 +1224,7 @@ bool CParameterMgr::exportSingleDomainXml(string& xmlDest, const string& domainN
         return false;
     }
 
-    return wrapLegacyXmlExport(xmlDest, toFile, withSettings, *requestedDomain, errorMsg);
+    return false;//wrapLegacyXmlExport(xmlDest, toFile, withSettings, *requestedDomain, errorMsg);
 }
 
 bool CParameterMgr::wrapLegacyXmlExport(string& xmlDest, bool toFile, bool withSettings,
@@ -1345,7 +1345,6 @@ void CParameterMgr::feedElementLibraries()
     // Parameter Configuration Domains creation
     CElementLibrary* pParameterConfigurationLibrary = new CElementLibrary;
 
-    pParameterConfigurationLibrary->addElementBuilder("ConfigurableDomain", new TElementBuilderTemplate<CConfigurableDomain>());
     pParameterConfigurationLibrary->addElementBuilder("Configuration", new TNamedElementBuilderTemplate<CDomainConfiguration>());
     pParameterConfigurationLibrary->addElementBuilder("CompoundRule", new TElementBuilderTemplate<CCompoundRule>());
     pParameterConfigurationLibrary->addElementBuilder("SelectionCriterionRule", new TElementBuilderTemplate<CSelectionCriterionRule>());
