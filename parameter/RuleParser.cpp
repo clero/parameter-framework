@@ -87,7 +87,7 @@ bool CRuleParser::parse(CCompoundRule* pParentRule, string& strError)
             if (pParentRule) {
 
                 // Chain
-                pParentRule->addChild(pCompoundRule);
+                pParentRule->addRule(CCompoundRule::RuleWrapper{pCompoundRule});
             } else {
                 // Root rule
                 delete _pRootRule;
@@ -119,7 +119,7 @@ bool CRuleParser::parse(CCompoundRule* pParentRule, string& strError)
             }
 
             // Chain
-            pParentRule->addChild(pCriterionRule);
+            pParentRule->addRule(CCompoundRule::RuleWrapper{pCriterionRule});
 
             // Go on
             break;

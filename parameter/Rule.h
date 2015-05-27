@@ -29,16 +29,15 @@
  */
 #pragma once
 
-#include "Element.h"
-
 #include <string>
 
 class CRuleParser;
 
-class CRule : public CElement
+class CRule
 {
 
 public:
+    virtual ~CRule() {};
     // Parse
     virtual bool parse(CRuleParser& ruleParser, std::string& strError) = 0;
 

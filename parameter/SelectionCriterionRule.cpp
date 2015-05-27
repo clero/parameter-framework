@@ -28,8 +28,6 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include "SelectionCriterionRule.h"
-#include "XmlDomainSerializingContext.h"
-#include "XmlDomainImportContext.h"
 #include "RuleParser.h"
 #include <criterion/Criterion.h>
 
@@ -51,13 +49,13 @@ string CSelectionCriterionRule::getKind() const
 }
 
 // Content dumping
-void CSelectionCriterionRule::logValue(string& strValue, CErrorContext& errorContext) const
-{
-    (void)errorContext;
-
-    // Dump rule
-    dump(strValue);
-}
+//void CSelectionCriterionRule::logValue(string& strValue, CErrorContext& errorContext) const
+//{
+//    (void)errorContext;
+//
+//    // Dump rule
+//    dump(strValue);
+//}
 
 // Parse
 bool CSelectionCriterionRule::parse(CRuleParser& ruleParser, string& strError)
@@ -124,71 +122,6 @@ bool CSelectionCriterionRule::matches() const
     assert(_pSelectionCriterion);
 
     return _pSelectionCriterion->match(mMatchesWhenVerb, mMatchState);
-}
-
-// From IXmlSink
-bool CSelectionCriterionRule::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
-{
-    // Retrieve actual context
-    CXmlDomainImportContext& xmlDomainImportContext = static_cast<CXmlDomainImportContext&>(serializingContext);
-
-    // Get selection criterion
-    string strSelectionCriterion;
-    xmlElement.getAttribute("SelectionCriterion", strSelectionCriterion);
-
-    _pSelectionCriterion =
-        xmlDomainImportContext.getCriteria().getCriterion(strSelectionCriterion);
-
-    // Check existence
-    if (!_pSelectionCriterion) {
-
-        xmlDomainImportContext.setError("Couldn't find selection criterion " + strSelectionCriterion + " in " + getKind() + " " + xmlElement.getPath());
-
-        return false;
-    }
-
-    // Get MatchesWhen
-    xmlElement.getAttribute("MatchesWhen", mMatchesWhenVerb);
-    string strError;
-
-    if (!_pSelectionCriterion->isMatchMethodAvailable(mMatchesWhenVerb)) {
-
-        xmlDomainImportContext.setError("Wrong MatchesWhen attribute " + mMatchesWhenVerb + " in " +
-                                        getKind() + " " + xmlElement.getPath() + ": " +
-                                        _pSelectionCriterion->getName());
-
-        return false;
-    }
-
-    // Get Value
-    string strValue;
-    xmlElement.getAttribute("Value", strValue);
-
-    if (!setMatchState(strValue)) {
-
-        xmlDomainImportContext.setError("Wrong Value attribute value " + strValue + " in " + getKind() + " " + xmlElement.getPath());
-
-        return false;
-    }
-    // Done
-    return true;
-}
-
-// From IXmlSource
-void CSelectionCriterionRule::toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
-{
-    (void)serializingContext;
-
-    assert(_pSelectionCriterion);
-
-    // Set selection criterion
-    xmlElement.setAttribute("SelectionCriterion", _pSelectionCriterion->getName());
-
-    // Set MatchesWhen
-    xmlElement.setAttribute("MatchesWhen", mMatchesWhenVerb);
-
-    // Set Value
-    xmlElement.setAttribute("Value", mMatchState.empty() ? gEmptyRule : *mMatchState.begin());
 }
 
 bool CSelectionCriterionRule::setMatchState(const std::string &value)

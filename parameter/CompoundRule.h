@@ -32,10 +32,14 @@
 #include "Rule.h"
 
 #include <string>
+#include <list>
+#include <memory>
 
-class CCompoundRule : public CRule
+class CCompoundRule final : public CRule
 {
 public:
+    using RuleWrapper = std::shared_ptr<CRule>;
+
     CCompoundRule();
 
     // Parse
@@ -47,24 +51,15 @@ public:
     // Rule check
     virtual bool matches() const;
 
-    // From IXmlSink
-    virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext);
+    void addRule(RuleWrapper rule);
 
-    // From IXmlSource
-    virtual void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
-
-    // Class kind
-    virtual std::string getKind() const;
-protected:
-    // Content dumping
-    virtual void logValue(std::string& strValue, CErrorContext& errorContext) const;
 private:
-    // Returns true if children dynamic creation is to be dealt with
-    virtual bool childrenAreDynamic() const;
 
     // Type
     bool _bTypeAll;
 
     // Types
     static const char* _apcTypes[];
+
+    std::list<RuleWrapper> _rules;
 };

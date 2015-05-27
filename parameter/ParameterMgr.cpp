@@ -1157,8 +1157,8 @@ bool CParameterMgr::importSingleDomainXml(const string& xmlSource, bool overwrit
 }
 
 bool CParameterMgr::wrapLegacyXmlImport(const string& xmlSource, bool fromFile,
-                                        bool withSettings, CElement& element,
-                                        const string& nameAttributeName, string& errorMsg)
+                                        bool withSettings, CElement& /**element*/,
+                                        const string& /**nameAttributeName*/, string& errorMsg)
 {
     CXmlDomainImportContext xmlDomainImportContext(errorMsg, withSettings, _systemClass, _criteria);
 
@@ -1169,8 +1169,8 @@ bool CParameterMgr::wrapLegacyXmlImport(const string& xmlSource, bool fromFile,
         return false;
     }
 
-    return xmlParse(xmlDomainImportContext, &element, doc,
-                    EParameterConfigurationLibrary, nameAttributeName);
+    return false;//xmlParse(xmlDomainImportContext, &element, doc,
+           //         EParameterConfigurationLibrary, nameAttributeName);
 }
 
 bool CParameterMgr::serializeElement(std::ostream& output,
@@ -1341,14 +1341,6 @@ void CParameterMgr::feedElementLibraries()
     pParameterCreationLibrary->addElementBuilder("FixedPointParameter", new TNamedElementBuilderTemplate<CFixedPointParameterType>());
 
     _pElementLibrarySet->addElementLibrary(pParameterCreationLibrary);
-
-    // Parameter Configuration Domains creation
-    CElementLibrary* pParameterConfigurationLibrary = new CElementLibrary;
-
-    pParameterConfigurationLibrary->addElementBuilder("CompoundRule", new TElementBuilderTemplate<CCompoundRule>());
-    pParameterConfigurationLibrary->addElementBuilder("SelectionCriterionRule", new TElementBuilderTemplate<CSelectionCriterionRule>());
-
-    _pElementLibrarySet->addElementLibrary(pParameterConfigurationLibrary);
 }
 
 bool CParameterMgr::getForceNoRemoteInterface() const

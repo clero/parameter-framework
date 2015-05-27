@@ -65,7 +65,6 @@ class CParameterMgr
 {
     enum ElementLibrary {
         EParameterCreationLibrary,
-        EParameterConfigurationLibrary
     };
 
     // Version

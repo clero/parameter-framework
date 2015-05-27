@@ -44,26 +44,14 @@ CCompoundRule::CCompoundRule() : _bTypeAll(false)
 {
 }
 
-// Class kind
-string CCompoundRule::getKind() const
-{
-    return "CompoundRule";
-}
-
-// Returns true if children dynamic creation is to be dealt with
-bool CCompoundRule::childrenAreDynamic() const
-{
-    return true;
-}
-
 // Content dumping
-void CCompoundRule::logValue(string& strValue, CErrorContext& errorContext) const
-{
-    (void)errorContext;
-
-    // Type
-    strValue = _apcTypes[_bTypeAll];
-}
+//void CCompoundRule::logValue(string& strValue, CErrorContext& errorContext) const
+//{
+//    (void)errorContext;
+//
+//    // Type
+//    strValue = _apcTypes[_bTypeAll];
+//}
 
 // Parse
 bool CCompoundRule::parse(CRuleParser& ruleParser, string& strError)
@@ -95,22 +83,16 @@ void CCompoundRule::dump(string& strResult) const
     strResult += _apcTypes[_bTypeAll];
     strResult += "{";
 
-    // Children
-    size_t uiChild;
-    size_t uiNbChildren = getNbChildren();
     bool bFirst = true;
 
-    for (uiChild = 0; uiChild < uiNbChildren; uiChild++) {
+    for (auto &rule : _rules) {
 
         if (!bFirst) {
 
             strResult += ", ";
         }
 
-        // Dump inner rule
-        const CRule* pRule = static_cast<const CRule*>(getChild(uiChild));
-
-        pRule->dump(strResult);
+        rule->dump(strResult);
 
         bFirst = false;
     }
@@ -121,14 +103,9 @@ void CCompoundRule::dump(string& strResult) const
 // Rule check
 bool CCompoundRule::matches() const
 {
-    size_t uiChild;
-    size_t uiNbChildren = getNbChildren();
+    for (auto &rule : _rules) {
 
-    for (uiChild = 0; uiChild < uiNbChildren; uiChild++) {
-
-        const CRule* pRule = static_cast<const CRule*>(getChild(uiChild));
-
-        if (pRule->matches() ^ _bTypeAll) {
+        if (rule->matches() ^ _bTypeAll) {
 
             return !_bTypeAll;
         }
@@ -136,22 +113,8 @@ bool CCompoundRule::matches() const
     return _bTypeAll;
 }
 
-// From IXmlSink
-bool CCompoundRule::fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext)
+
+void CCompoundRule::addRule(RuleWrapper rule)
 {
-    // Get type
-    _bTypeAll = xmlElement.getAttributeBoolean("Type", _apcTypes[true]);
-
-    // Base
-    return base::fromXml(xmlElement, serializingContext);
-}
-
-// From IXmlSource
-void CCompoundRule::toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const
-{
-    // Set type
-    xmlElement.setAttribute("Type", _apcTypes[_bTypeAll]);
-
-    // Base
-    base::toXml(xmlElement, serializingContext);
+    _rules.push_back(rule);
 }

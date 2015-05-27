@@ -50,17 +50,11 @@ public:
     // Rule check
     virtual bool matches() const;
 
-    // From IXmlSink
-    virtual bool fromXml(const CXmlElement& xmlElement, CXmlSerializingContext& serializingContext);
-
-    // From IXmlSource
-    virtual void toXml(CXmlElement& xmlElement, CXmlSerializingContext& serializingContext) const;
-
     // Class kind
     virtual std::string getKind() const;
 protected:
     // Content dumping
-    virtual void logValue(std::string& strValue, CErrorContext& errorContext) const;
+//    virtual void logValue(std::string& strValue, CErrorContext& errorContext) const;
 private:
 
     /** Internal helper to set the criterion state we want to match

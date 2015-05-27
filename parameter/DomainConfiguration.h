@@ -35,6 +35,7 @@
 
 #include <list>
 #include <string>
+#include <vector>
 #include <memory>
 
 class CConfigurableElement;
