@@ -51,6 +51,37 @@ public:
     core::xml::binding::Node getBindings()
     {
         using namespace core::xml::binding;
+        Node configuration {
+            "Configuration",
+            Body {
+                Routine { [this] () { mRawConfigurations.emplace_back(); } },
+                Attributes {
+                    {
+                        "Name",
+                        Type<std::string>{},
+                        [this](){ return ""; },
+                        [this](std::string name){ mRawConfigurations.back().setName(name); }
+                    }
+                },
+                Nodes { /**compoundRule*/ }
+            }
+        };
+        Node configurations {
+            "Configurations",
+            Body {
+                Attributes {},
+                Nodes { configuration },
+                Routine {
+                    [this] () {
+                        for (auto &conf : mRawConfigurations) {
+                            mRawDomains.back()._configurations[conf.getName()] = conf;
+                        }
+                        mRawConfigurations.clear();
+                    }
+                }
+            }
+        };
+
         /** Domains */
         Node configurableDomain {
             "ConfigurableDomain",
@@ -70,7 +101,7 @@ public:
                         [this](bool sequenceAware){ mRawDomains.back()._bSequenceAware = sequenceAware; }
                     }
                 },
-                Nodes { /**configurations, configurableElements, settings*/ }
+                Nodes { configurations/**, configurableElements, settings*/ },
             }
         };
         Node configurableDomains {
@@ -86,6 +117,7 @@ public:
                                 throw std::invalid_argument(error);
                             }
                         }
+                        mRawDomains.clear();
                     }
                 }
             }
@@ -97,6 +129,7 @@ private:
 
     CConfigurableDomains &mDomains;
     std::list<CConfigurableDomain> mRawDomains;
+    std::list<CDomainConfiguration> mRawConfigurations;
 };
 
 //class DomainBinder

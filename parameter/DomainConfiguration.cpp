@@ -42,6 +42,10 @@ CDomainConfiguration::CDomainConfiguration(const string& strName) : _name(strNam
 {
 }
 
+CDomainConfiguration::CDomainConfiguration() : CDomainConfiguration("")
+{
+}
+
 CDomainConfiguration::~CDomainConfiguration()
 {
     AreaConfigurationListIterator it;

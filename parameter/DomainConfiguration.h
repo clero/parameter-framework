@@ -47,6 +47,7 @@ class CDomainConfiguration
 {
     typedef std::list<CAreaConfiguration*>::const_iterator AreaConfigurationListIterator;
 public:
+    CDomainConfiguration();
     CDomainConfiguration(const std::string& strName);
     virtual ~CDomainConfiguration();
 
