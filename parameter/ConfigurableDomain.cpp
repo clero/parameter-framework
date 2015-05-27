@@ -674,8 +674,8 @@ bool CConfigurableDomain::renameConfiguration(const string& strName, const strin
         return false;
     }
 
-    // Rename
-    return pDomainConfiguration->rename(strNewName, strError);
+    pDomainConfiguration->setName(strNewName);
+    return true;
 }
 
 bool CConfigurableDomain::restoreConfiguration(const string& configurationName,

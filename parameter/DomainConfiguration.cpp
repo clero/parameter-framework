@@ -32,18 +32,13 @@
 #include "ConfigurableElement.h"
 #include "CompoundRule.h"
 #include "Subsystem.h"
-#include "XmlDomainSerializingContext.h"
-#include "XmlDomainImportContext.h"
-#include "XmlDomainExportContext.h"
 #include "ConfigurationAccessContext.h"
 #include <assert.h>
 #include "RuleParser.h"
 
-#define base CBinarySerializableElement
-
 using std::string;
 
-CDomainConfiguration::CDomainConfiguration(const string& strName) : base(strName)
+CDomainConfiguration::CDomainConfiguration(const string& strName) : _name(strName), _rule(nullptr)
 {
 }
 
@@ -63,156 +58,150 @@ string CDomainConfiguration::getKind() const
     return "Configuration";
 }
 
-// Child dynamic creation
-bool CDomainConfiguration::childrenAreDynamic() const
-{
-    return true;
-}
-
 // XML configuration settings parsing
-bool CDomainConfiguration::parseSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext)
-{
-    // Actual XML context
-    CXmlDomainImportContext& xmlDomainImportContext = static_cast<CXmlDomainImportContext&>(serializingContext);
-
-    // Take care of configurable elements / area configurations ranks
-    std::list<CAreaConfiguration*> areaConfigurationList;
-
-    // Parse configurable element's configuration settings
-    CXmlElement::CChildIterator it(xmlConfigurationSettingsElement);
-
-    CXmlElement xmlConfigurableElementSettingsElement;
-
-    while (it.next(xmlConfigurableElementSettingsElement)) {
-
-        // Retrieve area configuration
-        string strConfigurableElementPath;
-        xmlConfigurableElementSettingsElement.getAttribute("Path", strConfigurableElementPath);
-
-        CAreaConfiguration* pAreaConfiguration = findAreaConfiguration(strConfigurableElementPath);
-
-        if (!pAreaConfiguration) {
-
-            xmlDomainImportContext.setError("Configurable Element " + strConfigurableElementPath  + " referred to by Configuration " + getPath() + " not associated to Domain");
-
-            return false;
-        }
-        // Ranks
-        areaConfigurationList.push_back(pAreaConfiguration);
-
-        // Parse
-        if (!serializeConfigurableElementSettings(pAreaConfiguration, xmlConfigurableElementSettingsElement, xmlDomainImportContext, false)) {
-
-            return false;
-        }
-    }
-
-    // Reorder area configurations according to XML content
-    reorderAreaConfigurations(areaConfigurationList);
-
-    return true;
-}
-
-// XML configuration settings composing
-void CDomainConfiguration::composeSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext) const
-{
-    // Go through all are configurations
-    AreaConfigurationListIterator it;
-
-    for (it = _orderedAreaConfigurationList.begin(); it != _orderedAreaConfigurationList.end(); ++it) {
-
-        const CAreaConfiguration* pAreaConfiguration = *it;
-
-        // Retrieve configurable element
-        const CConfigurableElement* pConfigurableElement = pAreaConfiguration->getConfigurableElement();
-
-        // Create configurable element child element
-        CXmlElement xmlConfigurableElementSettingsElement;
-
-        xmlConfigurationSettingsElement.createChild(xmlConfigurableElementSettingsElement, "ConfigurableElement");
-
-        // Set Path attribute
-        xmlConfigurableElementSettingsElement.setAttribute("Path", pConfigurableElement->getPath());
-
-        // Delegate composing to area configuration
-        ((CDomainConfiguration&)(*this)).serializeConfigurableElementSettings((CAreaConfiguration*)pAreaConfiguration, xmlConfigurableElementSettingsElement, serializingContext, true);
-    }
-}
-
+//bool CDomainConfiguration::parseSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext)
+//{
+//    // Actual XML context
+//    CXmlDomainImportContext& xmlDomainImportContext = static_cast<CXmlDomainImportContext&>(serializingContext);
+//
+//    // Take care of configurable elements / area configurations ranks
+//    std::list<CAreaConfiguration*> areaConfigurationList;
+//
+//    // Parse configurable element's configuration settings
+//    CXmlElement::CChildIterator it(xmlConfigurationSettingsElement);
+//
+//    CXmlElement xmlConfigurableElementSettingsElement;
+//
+//    while (it.next(xmlConfigurableElementSettingsElement)) {
+//
+//        // Retrieve area configuration
+//        string strConfigurableElementPath;
+//        xmlConfigurableElementSettingsElement.getAttribute("Path", strConfigurableElementPath);
+//
+//        CAreaConfiguration* pAreaConfiguration = findAreaConfiguration(strConfigurableElementPath);
+//
+//        if (!pAreaConfiguration) {
+//
+//            xmlDomainImportContext.setError("Configurable Element " + strConfigurableElementPath  + " referred to by Configuration " + getPath() + " not associated to Domain");
+//
+//            return false;
+//        }
+//        // Ranks
+//        areaConfigurationList.push_back(pAreaConfiguration);
+//
+//        // Parse
+//        if (!serializeConfigurableElementSettings(pAreaConfiguration, xmlConfigurableElementSettingsElement, xmlDomainImportContext, false)) {
+//
+//            return false;
+//        }
+//    }
+//
+//    // Reorder area configurations according to XML content
+//    reorderAreaConfigurations(areaConfigurationList);
+//
+//    return true;
+//}
+//
+//// XML configuration settings composing
+//void CDomainConfiguration::composeSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext) const
+//{
+//    // Go through all are configurations
+//    AreaConfigurationListIterator it;
+//
+//    for (it = _orderedAreaConfigurationList.begin(); it != _orderedAreaConfigurationList.end(); ++it) {
+//
+//        const CAreaConfiguration* pAreaConfiguration = *it;
+//
+//        // Retrieve configurable element
+//        const CConfigurableElement* pConfigurableElement = pAreaConfiguration->getConfigurableElement();
+//
+//        // Create configurable element child element
+//        CXmlElement xmlConfigurableElementSettingsElement;
+//
+//        xmlConfigurationSettingsElement.createChild(xmlConfigurableElementSettingsElement, "ConfigurableElement");
+//
+//        // Set Path attribute
+//        xmlConfigurableElementSettingsElement.setAttribute("Path", pConfigurableElement->getPath());
+//
+//        // Delegate composing to area configuration
+//        ((CDomainConfiguration&)(*this)).serializeConfigurableElementSettings((CAreaConfiguration*)pAreaConfiguration, xmlConfigurableElementSettingsElement, serializingContext, true);
+//    }
+//}
+//
 // Serialize one configuration for one configurable element
-bool CDomainConfiguration::serializeConfigurableElementSettings(CAreaConfiguration* pAreaConfiguration, CXmlElement& xmlConfigurableElementSettingsElement, CXmlSerializingContext& serializingContext, bool bSerializeOut)
-{
-    // Actual XML context
-    CXmlDomainExportContext& xmlDomainExportContext =
-        static_cast<CXmlDomainExportContext&>(serializingContext);
-
-    // Configurable Element
-    const CConfigurableElement* pConfigurableElement = pAreaConfiguration->getConfigurableElement();
-
-    // Element content
-    CXmlElement xmlConfigurableElementSettingsElementContent;
-
-    // Deal with element itself
-    if (!bSerializeOut) {
-
-        // Check structure
-        if (xmlConfigurableElementSettingsElement.getNbChildElements() != 1) {
-
-            // Structure error
-            serializingContext.setError("Struture error encountered while parsing settings of " + pConfigurableElement->getKind() + " " + pConfigurableElement->getName() + " in Configuration " + getPath());
-
-            return false;
-        }
-
-        // Check name and kind
-        if (!xmlConfigurableElementSettingsElement.getChildElement(pConfigurableElement->getKind(), pConfigurableElement->getName(), xmlConfigurableElementSettingsElementContent)) {
-
-            serializingContext.setError("Couldn't find settings for " + pConfigurableElement->getKind() + " " + pConfigurableElement->getName() + " for Configuration " + getPath());
-
-            return false;
-        }
-    } else {
-
-        // Create child XML element
-        xmlConfigurableElementSettingsElement.createChild(xmlConfigurableElementSettingsElementContent, pConfigurableElement->getKind());
-
-        // Set Name
-        xmlConfigurableElementSettingsElementContent.setNameAttribute(pConfigurableElement->getName());
-    }
-
-    // Change context type to parameter settings access
-    string strError;
-
-    // Create configuration access context
-    CConfigurationAccessContext configurationAccessContext(strError, bSerializeOut);
-
-    // Provide current value space
-    configurationAccessContext.setValueSpaceRaw(xmlDomainExportContext.valueSpaceIsRaw());
-
-    // Provide current output raw format
-    configurationAccessContext.setOutputRawFormat(xmlDomainExportContext.outputRawFormatIsHex());
-
-    // Get subsystem
-    const CSubsystem* pSubsystem = pConfigurableElement->getBelongingSubsystem();
-
-    if (pSubsystem && pSubsystem != pConfigurableElement) {
-
-        // Element is a descendant of subsystem
-
-        // Deal with Endianness
-        configurationAccessContext.setBigEndianSubsystem(pSubsystem->isBigEndian());
-    }
-
-    // Have domain configuration parse settings for configurable element
-    if (!pAreaConfiguration->serializeXmlSettings(xmlConfigurableElementSettingsElementContent, configurationAccessContext)) {
-
-        // Forward error
-        xmlDomainExportContext.setError(strError);
-
-        return false;
-    }
-    return true;
-}
+//bool CDomainConfiguration::serializeConfigurableElementSettings(CAreaConfiguration* pAreaConfiguration, CXmlElement& xmlConfigurableElementSettingsElement, CXmlSerializingContext& serializingContext, bool bSerializeOut)
+//{
+//    // Actual XML context
+//    CXmlDomainExportContext& xmlDomainExportContext =
+//        static_cast<CXmlDomainExportContext&>(serializingContext);
+//
+//    // Configurable Element
+//    const CConfigurableElement* pConfigurableElement = pAreaConfiguration->getConfigurableElement();
+//
+//    // Element content
+//    CXmlElement xmlConfigurableElementSettingsElementContent;
+//
+//    // Deal with element itself
+//    if (!bSerializeOut) {
+//
+//        // Check structure
+//        if (xmlConfigurableElementSettingsElement.getNbChildElements() != 1) {
+//
+//            // Structure error
+//            serializingContext.setError("Struture error encountered while parsing settings of " + pConfigurableElement->getKind() + " " + pConfigurableElement->getName() + " in Configuration " + getPath());
+//
+//            return false;
+//        }
+//
+//        // Check name and kind
+//        if (!xmlConfigurableElementSettingsElement.getChildElement(pConfigurableElement->getKind(), pConfigurableElement->getName(), xmlConfigurableElementSettingsElementContent)) {
+//
+//            serializingContext.setError("Couldn't find settings for " + pConfigurableElement->getKind() + " " + pConfigurableElement->getName() + " for Configuration " + getPath());
+//
+//            return false;
+//        }
+//    } else {
+//
+//        // Create child XML element
+//        xmlConfigurableElementSettingsElement.createChild(xmlConfigurableElementSettingsElementContent, pConfigurableElement->getKind());
+//
+//        // Set Name
+//        xmlConfigurableElementSettingsElementContent.setNameAttribute(pConfigurableElement->getName());
+//    }
+//
+//    // Change context type to parameter settings access
+//    string strError;
+//
+//    // Create configuration access context
+//    CConfigurationAccessContext configurationAccessContext(strError, bSerializeOut);
+//
+//    // Provide current value space
+//    configurationAccessContext.setValueSpaceRaw(xmlDomainExportContext.valueSpaceIsRaw());
+//
+//    // Provide current output raw format
+//    configurationAccessContext.setOutputRawFormat(xmlDomainExportContext.outputRawFormatIsHex());
+//
+//    // Get subsystem
+//    const CSubsystem* pSubsystem = pConfigurableElement->getBelongingSubsystem();
+//
+//    if (pSubsystem && pSubsystem != pConfigurableElement) {
+//
+//        // Element is a descendant of subsystem
+//
+//        // Deal with Endianness
+//        configurationAccessContext.setBigEndianSubsystem(pSubsystem->isBigEndian());
+//    }
+//
+//    // Have domain configuration parse settings for configurable element
+//    if (!pAreaConfiguration->serializeXmlSettings(xmlConfigurableElementSettingsElementContent, configurationAccessContext)) {
+//
+//        // Forward error
+//        xmlDomainExportContext.setError(strError);
+//
+//        return false;
+//    }
+//    return true;
+//}
 
 // Configurable Elements association
 void CDomainConfiguration::addConfigurableElement(const CConfigurableElement* pConfigurableElement, const CSyncerSet* pSyncerSet)
@@ -302,28 +291,27 @@ bool CDomainConfiguration::setApplicationRule(const string& strApplicationRule,
         return false;
     }
     // Replace compound rule
-    setRule(ruleParser.grabRootRule());
+    CCompoundRule* rule = ruleParser.grabRootRule();
+    if (rule != nullptr) {
+        _rule = std::shared_ptr<CCompoundRule>(rule);
+    }
 
     return true;
 }
 
 void CDomainConfiguration::clearApplicationRule()
 {
-    // Replace compound rule
-    setRule(NULL);
+    _rule = nullptr;
 }
 
 void CDomainConfiguration::getApplicationRule(string& strResult) const
 {
-    // Rule
-    const CCompoundRule* pRule = getRule();
-
-    if (pRule) {
+    if (_rule != nullptr) {
         // Start clear
         strResult.clear();
 
         // Dump rule
-        pRule->dump(strResult);
+        _rule->dump(strResult);
 
     } else {
 
@@ -459,9 +447,7 @@ void CDomainConfiguration::validateAgainst(const CDomainConfiguration* pValidDom
 // Dynamic data application
 bool CDomainConfiguration::isApplicable() const
 {
-    const CCompoundRule* pRule = getRule();
-
-    return pRule && pRule->matches();
+    return _rule != nullptr && _rule->matches();
 }
 
 // Merge existing configurations to given configurable element ones
@@ -599,85 +585,48 @@ CAreaConfiguration* CDomainConfiguration::getAreaConfiguration(uint32_t uiAreaCo
     return NULL;
 }
 
-// Rule
-const CCompoundRule* CDomainConfiguration::getRule() const
-{
-    if (getNbChildren()) {
-        // Rule created
-        return static_cast<const CCompoundRule*>(getChild(ECompoundRule));
-    }
-    return NULL;
-}
-
-CCompoundRule* CDomainConfiguration::getRule()
-{
-    if (getNbChildren()) {
-        // Rule created
-        return static_cast<CCompoundRule*>(getChild(ECompoundRule));
-    }
-    return NULL;
-}
-
-void CDomainConfiguration::setRule(CCompoundRule* pRule)
-{
-    CCompoundRule* pOldRule = getRule();
-
-    if (pOldRule) {
-        // Remove previous rule
-        removeChild(pOldRule);
-
-        delete pOldRule;
-    }
-
-    // Set new one
-    if (pRule) {
-        // Chain
-        addChild(pRule);
-    }
-}
-
 // Serialization
-void CDomainConfiguration::binarySerialize(CBinaryStream& binaryStream)
-{
-    AreaConfigurationListIterator it;
-
-    // Area configurations order
-    if (binaryStream.isOut()) {
-
-        for (it = _orderedAreaConfigurationList.begin(); it != _orderedAreaConfigurationList.end(); ++it) {
-
-            // Get rank
-            uint32_t uiAreaConfigurationRank = getAreaConfigurationRank(*it);
-
-            // Store it
-            binaryStream.write((const uint8_t*)&uiAreaConfigurationRank, sizeof(uiAreaConfigurationRank));
-        }
-    } else {
-
-        // Empty ordered list first
-        _orderedAreaConfigurationList.resize(0);
-
-        uint32_t uiAreaConfiguration;
-
-        for (uiAreaConfiguration = 0; uiAreaConfiguration < _areaConfigurationList.size(); uiAreaConfiguration++) {
-
-            // Get rank
-            uint32_t uiAreaConfigurationRank;
-
-            binaryStream.read((uint8_t*)&uiAreaConfigurationRank, sizeof(uiAreaConfigurationRank));
-
-            _orderedAreaConfigurationList.push_back(getAreaConfiguration(uiAreaConfigurationRank));
-        }
-    }
-
-    // Propagate to areas
-    for (it = _areaConfigurationList.begin(); it != _areaConfigurationList.end(); ++it) {
-
-        CAreaConfiguration* pAreaConfiguration = *it;
-
-        pAreaConfiguration->serialize(binaryStream);
-    }
-}
+//void CDomainConfiguration::binarySerialize(CBinaryStream& binaryStream)
+//{
+//    AreaConfigurationListIterator it;
+//
+//    // Area configurations order
+//    if (binaryStream.isOut()) {
+//
+//        for (it = _orderedAreaConfigurationList.begin(); it != _orderedAreaConfigurationList.end(); ++it) {
+//
+//            // Get rank
+//            uint32_t uiAreaConfigurationRank = getAreaConfigurationRank(*it);
+//
+//            // Store it
+//            binaryStream.write((const uint8_t*)&uiAreaConfigurationRank, sizeof(uiAreaConfigurationRank));
+//        }
+//    } else {
+//
+//        // Empty ordered list first
+//        _orderedAreaConfigurationList.resize(0);
+//
+//        uint32_t uiAreaConfiguration;
+//
+//        for (uiAreaConfiguration = 0; uiAreaConfiguration < _areaConfigurationList.size(); uiAreaConfiguration++) {
+//
+//            // Get rank
+//            uint32_t uiAreaConfigurationRank;
+//
+//            binaryStream.read((uint8_t*)&uiAreaConfigurationRank, sizeof(uiAreaConfigurationRank));
+//
+//            _orderedAreaConfigurationList.push_back(getAreaConfiguration(uiAreaConfigurationRank));
+//        }
+//    }
+//
+//    // Propagate to areas
+//    for (it = _areaConfigurationList.begin(); it != _areaConfigurationList.end(); ++it) {
+//
+//        CAreaConfiguration* pAreaConfiguration = *it;
+//
+//        pAreaConfiguration->serialize(binaryStream);
+//    }
+//}
 
 // Data size
 size_t CDomainConfiguration::getDataSize() const

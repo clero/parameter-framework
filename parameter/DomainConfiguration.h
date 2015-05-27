@@ -29,25 +29,22 @@
  */
 #pragma once
 
-#include "BinarySerializableElement.h"
+#include "CompoundRule.h"
 #include "Results.h"
 #include <criterion/Criteria.h>
 
 #include <list>
 #include <string>
+#include <memory>
 
 class CConfigurableElement;
 class CAreaConfiguration;
 class CParameterBlackboard;
 class CConfigurationAccessContext;
-class CCompoundRule;
 class CSyncerSet;
 
-class CDomainConfiguration : public CBinarySerializableElement
+class CDomainConfiguration
 {
-    enum ChildElementType {
-        ECompoundRule
-    };
     typedef std::list<CAreaConfiguration*>::const_iterator AreaConfigurationListIterator;
 public:
     CDomainConfiguration(const std::string& strName);
@@ -110,11 +107,11 @@ public:
     void split(CConfigurableElement* pFromConfigurableElement);
 
     // XML configuration settings parsing/composing
-    bool parseSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext);
-    void composeSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext) const;
+    //bool parseSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext);
+    //void composeSettings(CXmlElement& xmlConfigurationSettingsElement, CXmlSerializingContext& serializingContext) const;
 
-    // Serialization
-    virtual void binarySerialize(CBinaryStream& binaryStream);
+    //// Serialization
+    //virtual void binarySerialize(CBinaryStream& binaryStream);
 
     // Data size
     virtual size_t getDataSize() const;
@@ -122,11 +119,16 @@ public:
     // Class kind
     virtual std::string getKind() const;
 
+    std::string getName() const
+    {
+        return _name;
+    }
+    void setName(const std::string &name)
+    {
+        _name = name;
+    }
+
 private:
-    // Returns true if children dynamic creation is to be dealt with (here, will allow child deletion upon clean)
-    virtual bool childrenAreDynamic() const;
-    // XML configuration settings serializing
-    bool serializeConfigurableElementSettings(CAreaConfiguration* pAreaConfiguration, CXmlElement& xmlConfigurableElementSettingsElement, CXmlSerializingContext& serializingContext, bool bSerializeOut);
     // AreaConfiguration retrieval from configurable element
     CAreaConfiguration* getAreaConfiguration(const CConfigurableElement* pConfigurableElement) const;
     // AreaConfiguration retrieval from present area configurations
@@ -148,4 +150,12 @@ private:
     // AreaConfigurations
     std::list<CAreaConfiguration*> _areaConfigurationList;
     std::list<CAreaConfiguration*> _orderedAreaConfigurationList;
+
+    /** TODO: remove it if possible */
+    std::string _name;
+
+    /** there is a possibility that we have no Rule
+     * use ptr until Rule refactor (to have empty rule flag)
+     */
+    std::shared_ptr<CCompoundRule> _rule;
 };
