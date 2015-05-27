@@ -36,10 +36,19 @@
 #define base CRule
 
 using std::string;
+using namespace core::criterion::internal;
 
 CSelectionCriterionRule::CSelectionCriterionRule() :
     _pSelectionCriterion(NULL), mMatchesWhenVerb(""), mMatchState{}
 {
+}
+
+CSelectionCriterionRule::CSelectionCriterionRule(const Criterion *criterion,
+                                                 std::string &matchType,
+                                                 core::criterion::Value &matchState) :
+    _pSelectionCriterion(criterion), mMatchesWhenVerb(matchType), mMatchState{matchState}
+{
+    // TODO test value corectness
 }
 
 // Class kind

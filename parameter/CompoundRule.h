@@ -53,6 +53,11 @@ public:
 
     void addRule(RuleWrapper rule);
 
+    void setType(bool isTypeAll)
+    {
+        _bTypeAll = isTypeAll;
+    }
+
 private:
 
     // Type

@@ -40,6 +40,9 @@ class CSelectionCriterionRule : public CRule
 {
 public:
     CSelectionCriterionRule();
+    CSelectionCriterionRule(const core::criterion::internal::Criterion *criterion,
+                            std::string &matchType,
+                            core::criterion::Value &matchState);
 
     // Parse
     virtual bool parse(CRuleParser& ruleParser, std::string& strError);

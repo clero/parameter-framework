@@ -29,6 +29,7 @@
  */
 #pragma once
 
+#include "RulesBinder.h"
 #include <xmlserializer/Node.h>
 
 #include <string>
@@ -46,7 +47,10 @@ class SettingsBinder
 {
 public:
 
-    SettingsBinder(CConfigurableDomains &domains) : mDomains(domains), mRawDomains{} {}
+    SettingsBinder(CConfigurableDomains &domains, core::criterion::internal::Criteria &criteria) :
+        mDomains(domains), mRawDomains{}, mCriteria{criteria}, mRulesBinder{mCriteria}
+    {
+    }
 
     core::xml::binding::Node getBindings()
     {
@@ -54,16 +58,22 @@ public:
         Node configuration {
             "Configuration",
             Body {
-                Routine { [this] () { mRawConfigurations.emplace_back(); } },
+                Routine { [this] () {
+                    mRawConfigurations.emplace_back();
+                } },
                 Attributes {
                     {
                         "Name",
                         Type<std::string>{},
-                        [this](){ return ""; },
+                        [this](){ return ""; }, //FIXME
                         [this](std::string name){ mRawConfigurations.back().setName(name); }
                     }
                 },
-                Nodes { /**compoundRule*/ }
+                Nodes { mRulesBinder.getBindings() },
+                Routine { [this] () {
+                        mRawConfigurations.back().setRule(mRulesBinder.getRule());
+                    }
+                },
             }
         };
         Node configurations {
@@ -130,6 +140,10 @@ private:
     CConfigurableDomains &mDomains;
     std::list<CConfigurableDomain> mRawDomains;
     std::list<CDomainConfiguration> mRawConfigurations;
+
+    core::criterion::internal::Criteria &mCriteria;
+
+    RulesBinder mRulesBinder;
 };
 
 //class DomainBinder

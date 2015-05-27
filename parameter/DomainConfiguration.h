@@ -129,6 +129,10 @@ public:
     {
         _name = name;
     }
+    void setRule(std::shared_ptr<CCompoundRule> rule)
+    {
+        _rule = rule;
+    }
 
 private:
     // AreaConfiguration retrieval from configurable element
@@ -147,7 +151,6 @@ private:
     // Rule
     const CCompoundRule* getRule() const;
     CCompoundRule* getRule();
-    void setRule(CCompoundRule* pRule);
 
     // AreaConfigurations
     std::list<CAreaConfiguration*> _areaConfigurationList;
