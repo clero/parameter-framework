@@ -45,7 +45,7 @@ namespace binding
 /** An xml tag is represented through a simple string */
 using Tag = std::string;
 
-struct Body;
+class Body;
 
 /** Nodes should be retrieved easily thanks to their tag */
 using Nodes = std::map<Tag, Body>;
@@ -53,12 +53,16 @@ using Nodes = std::map<Tag, Body>;
 /** Type of functor which will be called just before Node creation */
 using Routine = std::function<void()>;
 
+using Node = std::pair<Tag, Body>;
+
+namespace details
+{
+
 /** Xml Node representation */
 struct Body
 {
     Body(Routine r, Attributes a, Nodes c, Routine e) :
         startRoutine(r), attributes(a), childs(c), endRoutine(e) {}
-    /** TODO: test if exceptions raised when calling empty routine  */
     Body(Attributes a, Nodes c) : Body(Routine{[](){}}, a, c, Routine{[](){}}) {}
     Body(Routine r, Attributes a, Nodes c) : Body(r, a, c, Routine{[](){}}) {}
     Body(Attributes a, Nodes c, Routine e) : Body(Routine{[](){}}, a, c, e) {}
@@ -69,7 +73,41 @@ struct Body
     Routine endRoutine;
 };
 
-using Node = std::pair<Tag, Body>;
+} /** details namespace */
+
+class Body
+{
+public:
+    Body(const Body &body) = default;
+    Body(Routine r, Attributes a, Nodes c, Routine e) :
+        mBody{new details::Body(r, a, c, e)} {}
+    Body(Attributes a, Nodes c) :
+        mBody{new details::Body(a, c)} {}
+    Body(Routine r, Attributes a, Nodes c) :
+        mBody{new details::Body(r, a, c)} {}
+    Body(Attributes a, Nodes c, Routine e) :
+        mBody{new details::Body(a, c, e)} {}
+
+    void startRoutine()
+    {
+        mBody->startRoutine();
+    }
+    void endRoutine()
+    {
+        mBody->endRoutine();
+    }
+    Attributes &getAttributes() const
+    {
+        return mBody->attributes;
+    }
+    Nodes &getChilds() const
+    {
+        return mBody->childs;
+    }
+
+private:
+    std::shared_ptr<details::Body> mBody;
+};
 
 } /** binding namespace */
 } /** xml namespace */

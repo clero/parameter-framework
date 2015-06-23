@@ -305,7 +305,8 @@ public:
     Node getTestBindings(FillMeBigger &toFill)
     {
         auto bindings = getTestBindings(dynamic_cast<FillMe&>(toFill));
-        bindings.second.attributes.emplace_back(Attribute{"DoubleAttr", makeBinder(toFill.mDouble)});
+        bindings.second.getAttributes().emplace_back(
+                Attribute{"DoubleAttr", makeBinder(toFill.mDouble)});
         return bindings;
     }
 

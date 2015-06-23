@@ -98,11 +98,11 @@ private:
     virtual void toXml(CXmlElement& xmlElement,
                        CXmlSerializingContext& context) const override
     {
-        for(auto &attribute : mCurrentNode.second.attributes) {
+        for(auto &attribute : mCurrentNode.second.getAttributes()) {
             xmlElement.setAttribute(attribute.getName(), attribute.get());
         }
 
-        for(auto &child : mCurrentNode.second.childs) {
+        for(auto &child : mCurrentNode.second.getChilds()) {
             // Create corresponding child element
             CXmlElement xmlChildElement;
             xmlElement.createChild(xmlChildElement, child.first);

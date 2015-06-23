@@ -122,7 +122,7 @@ private:
             return false;
         }
 
-        for(auto &attribute : mCurrentNode.second.attributes) {
+        for(auto &attribute : mCurrentNode.second.getAttributes()) {
             std::string rawAttribute;
             if (xmlElement.hasAttribute(attribute.getName())) {
                 xmlElement.getAttribute(attribute.getName(), rawAttribute);
@@ -145,8 +145,8 @@ private:
                 try
                 {
                     // retrieve node and propagate to dedicated deserializer
-                    binding::Node childNodeStruct =
-                        {childNode.getType(), mCurrentNode.second.childs.at(childNode.getType())};
+                    binding::Node childNodeStruct = {childNode.getType(),
+                                           mCurrentNode.second.getChilds().at(childNode.getType())};
 
                     Deserializer childSerializer(childNodeStruct);
                     if (!childSerializer.fromXml(childNode, context)) {
