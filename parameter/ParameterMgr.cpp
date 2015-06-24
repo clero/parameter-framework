@@ -353,7 +353,7 @@ bool CParameterMgr::loadSettingsFromConfigFile(string& strError)
     try {
         using namespace xml::serialization;
         if (!_pfwConfiguration.settingsFile.empty()) {
-            bindings::xml::SettingsBinder binder{_domains, _criteria};
+            bindings::xml::SettingsBinder binder{_domains, _criteria, _systemClass};
             Deserializer<ImportSource::File> test{_pfwConfiguration.settingsFile,
                                                   binder.getBindings()};
         }

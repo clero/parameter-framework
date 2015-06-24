@@ -47,14 +47,59 @@ class SettingsBinder
 {
 public:
 
-    SettingsBinder(CConfigurableDomains &domains, core::criterion::internal::Criteria &criteria) :
-        mDomains(domains), mRawDomains{}, mCriteria{criteria}, mRulesBinder{mCriteria}
+    SettingsBinder(CConfigurableDomains &domains,
+                   core::criterion::internal::Criteria &criteria,
+                   CSystemClass &systemClass) :
+        mDomains(domains), mRawDomains{}, mCriteria{criteria},
+        mSystemClass(systemClass), mRulesBinder{mCriteria}
     {
+    }
+
+    void handleConfigurableElement()
+    {
+        CPathNavigator pathNavigator(mTmpConfigurableElementPath);
+        std::string error;
+
+        // Is there an element and does it match system class name?
+        if (!pathNavigator.navigateThrough(mSystemClass.getName(), error)) {
+            throw std::runtime_error(
+                    "Could not find configurable element of path " + mTmpConfigurableElementPath +
+                    " from ConfigurableDomain description " + mRawDomains.back().getName() +
+                    " (" + error + ")");
+        }
+        // Browse system class for configurable element
+        CConfigurableElement* configurableElement =
+            static_cast<CConfigurableElement*>(mSystemClass.findDescendant(pathNavigator));
+
+        if (!configurableElement) {
+            throw std::runtime_error(
+                    "Could not find configurable element of path " + mTmpConfigurableElementPath +
+                    " from ConfigurableDomain description " + mRawDomains.back().getName());
+
+        }
+
+        core::Results infos;
+        if (!mRawDomains.back().addConfigurableElement(configurableElement, NULL, infos)) {
+            CUtility::asString(infos, error);
+            throw std::runtime_error(error);
+        }
     }
 
     core::xml::binding::Node getBindings()
     {
         using namespace core::xml::binding;
+
+        Node configurableElement {
+            "ConfigurableElement",
+            Body {
+                Attributes{ {"Path", makeBinder(mTmpConfigurableElementPath)} }, Nodes{},
+                Routine { [this] { handleConfigurableElement(); } }
+            }
+        };
+        Node configurableElements {
+            "ConfigurableElements",
+            Body { Attributes{}, Nodes{ configurableElement } }
+        };
         Node configuration {
             "Configuration",
             Body {
@@ -111,7 +156,7 @@ public:
                         [this](bool sequenceAware){ mRawDomains.back()._bSequenceAware = sequenceAware; }
                     }
                 },
-                Nodes { configurations/**, configurableElements, settings*/ },
+                Nodes { configurations, configurableElements/**, settings*/ },
             }
         };
         Node configurableDomains {
@@ -140,8 +185,10 @@ private:
     CConfigurableDomains &mDomains;
     std::list<CConfigurableDomain> mRawDomains;
     std::list<CDomainConfiguration> mRawConfigurations;
+    std::string mTmpConfigurableElementPath;;
 
     core::criterion::internal::Criteria &mCriteria;
+    CSystemClass &mSystemClass;
 
     RulesBinder mRulesBinder;
 };
