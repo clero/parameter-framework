@@ -129,7 +129,7 @@ public:
                 Routine {
                     [this] () {
                         for (auto &conf : mRawConfigurations) {
-                            mRawDomains.back()._configurations[conf.getName()] = conf;
+                            mRawDomains.back()._configurations.emplace(conf.getName(), conf);
                         }
                         mRawConfigurations.clear();
                     }
