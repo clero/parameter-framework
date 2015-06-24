@@ -46,7 +46,6 @@ class CSyncerSet;
 
 class CDomainConfiguration
 {
-    typedef std::list<CAreaConfiguration*>::const_iterator AreaConfigurationListIterator;
 public:
     CDomainConfiguration();
     CDomainConfiguration(const std::string& strName);
@@ -135,26 +134,24 @@ public:
     }
 
 private:
+    using AreaWrapper = std::shared_ptr<CAreaConfiguration>;
+
     // AreaConfiguration retrieval from configurable element
-    CAreaConfiguration* getAreaConfiguration(const CConfigurableElement* pConfigurableElement) const;
+    AreaWrapper getAreaConfiguration(const CConfigurableElement* pConfigurableElement) const;
     // AreaConfiguration retrieval from present area configurations
-    CAreaConfiguration* findAreaConfiguration(const std::string& strConfigurableElementPath) const;
+    AreaWrapper findAreaConfiguration(const std::string& strConfigurableElementPath) const;
     // AreaConfiguration retrieval from given area configuration std::list
-    CAreaConfiguration* findAreaConfiguration(const std::string& strConfigurableElementPath, const std::list<CAreaConfiguration*>& areaConfigurationList) const;
+    AreaWrapper findAreaConfiguration(const std::string& strConfigurableElementPath, const std::list<AreaWrapper>& areaConfigurationList) const;
     // Area configuration ordering
-    void reorderAreaConfigurations(const std::list<CAreaConfiguration*>& areaConfigurationList);
-    // Find area configuration rank from regular std::list: for ordered std::list maintainance
-    uint32_t getAreaConfigurationRank(const CAreaConfiguration* pAreaConfiguration) const;
-    // Find area configuration from regular std::list based on rank: for ordered std::list maintainance
-    CAreaConfiguration* getAreaConfiguration(uint32_t uiAreaConfigurationRank) const;
+    void reorderAreaConfigurations(const std::list<AreaWrapper>& areaConfigurationList);
 
     // Rule
     const CCompoundRule* getRule() const;
     CCompoundRule* getRule();
 
     // AreaConfigurations
-    std::list<CAreaConfiguration*> _areaConfigurationList;
-    std::list<CAreaConfiguration*> _orderedAreaConfigurationList;
+    std::list<AreaWrapper> _areaConfigurationList;
+    std::list<AreaWrapper> _orderedAreaConfigurationList;
 
     /** TODO: remove it if possible */
     std::string _name;
