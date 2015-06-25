@@ -62,15 +62,19 @@ namespace details
 struct Body
 {
     Body(Routine r, Attributes a, Nodes c, Routine e) :
-        startRoutine(r), attributes(a), childs(c), endRoutine(e) {}
+        startRoutine(r), attributes(a), childs(c), endRoutine(e), textContent("") {}
     Body(Attributes a, Nodes c) : Body(Routine{[](){}}, a, c, Routine{[](){}}) {}
     Body(Routine r, Attributes a, Nodes c) : Body(r, a, c, Routine{[](){}}) {}
     Body(Attributes a, Nodes c, Routine e) : Body(Routine{[](){}}, a, c, e) {}
+
+    Body(const std::string &t, Routine r, Attributes a, Routine e) :
+        startRoutine(r), attributes(a), childs{}, endRoutine(e), textContent(t) {}
 
     Routine startRoutine;
     Attributes attributes;
     Nodes childs;
     Routine endRoutine;
+    std::string textContent;
 };
 
 } /** details namespace */
@@ -87,6 +91,15 @@ public:
         mBody{new details::Body(r, a, c)} {}
     Body(Attributes a, Nodes c, Routine e) :
         mBody{new details::Body(a, c, e)} {}
+
+    Body(const std::string &t, Attributes a, Routine e) :
+        mBody{new details::Body(t, Routine{[](){}}, a, e)} {}
+    Body(const std::string &t, Routine r, Attributes a) :
+        mBody{new details::Body(t, r, a, Routine{[](){}})} {}
+    Body(const std::string &t, Routine r, Attributes a, Routine e) :
+        mBody{new details::Body(t, r, a, e)} {}
+    Body(const std::string &t, Attributes a) :
+        mBody{new details::Body(t, Routine{[](){}}, a, Routine{[](){}})} {}
 
     void startRoutine()
     {
