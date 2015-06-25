@@ -141,7 +141,7 @@ private:
         if (xmlElement.getNbChildElements() != 0) {
             CXmlElement::CChildIterator childIterator(xmlElement);
             CXmlElement childNode;
-            while ( childIterator.next(childNode)) {
+            while (childIterator.next(childNode)) {
                 try
                 {
                     // retrieve node and propagate to dedicated deserializer
@@ -158,6 +158,15 @@ private:
                     context.setError(error);
                     return false;
                 }
+            }
+        } else if (!xmlElement.getTextContent().empty()) {
+            try {
+                mCurrentNode.second.setTextContent(xmlElement.getTextContent());
+            } catch (std::invalid_argument &e) {
+                std::string error = "When parsing text node '" + mCurrentNode.first  +
+                                    "': " + e.what();
+                context.setError(error);
+                return false;
             }
         }
 

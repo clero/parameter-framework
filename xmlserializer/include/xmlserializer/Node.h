@@ -30,6 +30,7 @@
 #pragma once
 
 #include "xmlserializer/Attribute.h"
+#include "xmlserializer/DataHolder.h"
 
 #include <map>
 #include <string>
@@ -59,22 +60,40 @@ namespace details
 {
 
 /** Xml Node representation */
-struct Body
+class Body : public binding::DataHolder
 {
+public:
     Body(Routine r, Attributes a, Nodes c, Routine e) :
-        startRoutine(r), attributes(a), childs(c), endRoutine(e), textContent("") {}
+        DataHolder(), startRoutine(r), attributes(a), childs(c), endRoutine(e) {}
     Body(Attributes a, Nodes c) : Body(Routine{[](){}}, a, c, Routine{[](){}}) {}
     Body(Routine r, Attributes a, Nodes c) : Body(r, a, c, Routine{[](){}}) {}
     Body(Attributes a, Nodes c, Routine e) : Body(Routine{[](){}}, a, c, e) {}
 
-    Body(const std::string &t, Routine r, Attributes a, Routine e) :
-        startRoutine(r), attributes(a), childs{}, endRoutine(e), textContent(t) {}
+    template<class type, typename GetterType, typename SetterType>
+    Body(Type<type> &&t, GetterType &&getter, SetterType &&setter,
+         Routine r, Attributes a, Routine e) :
+        DataHolder(std::move(t), getter, setter),
+        startRoutine(r), attributes(a), childs{}, endRoutine(e), holderInitialized(true)
+    {}
+    template<class T>
+    Body(Binder<T> &&binder, Routine r, Attributes a, Routine e) :
+        DataHolder(std::forward<Binder<T> >(binder)),
+        startRoutine(r), attributes(a), childs{}, endRoutine(e), holderInitialized(true)
+    {}
+
+    bool isText() const
+    {
+        return holderInitialized;
+    }
 
     Routine startRoutine;
     Attributes attributes;
     Nodes childs;
     Routine endRoutine;
-    std::string textContent;
+
+private:
+
+    bool holderInitialized = false;
 };
 
 } /** details namespace */
@@ -92,14 +111,34 @@ public:
     Body(Attributes a, Nodes c, Routine e) :
         mBody{new details::Body(a, c, e)} {}
 
-    Body(const std::string &t, Attributes a, Routine e) :
-        mBody{new details::Body(t, Routine{[](){}}, a, e)} {}
-    Body(const std::string &t, Routine r, Attributes a) :
-        mBody{new details::Body(t, r, a, Routine{[](){}})} {}
-    Body(const std::string &t, Routine r, Attributes a, Routine e) :
-        mBody{new details::Body(t, r, a, e)} {}
-    Body(const std::string &t, Attributes a) :
-        mBody{new details::Body(t, Routine{[](){}}, a, Routine{[](){}})} {}
+    // FIXME: forward no move
+    template<class type, typename GetterType, typename SetterType>
+    Body(Type<type> &&t, GetterType &&getter, SetterType &&setter, Attributes a, Routine e) :
+        mBody{new details::Body(std::move(t), getter, setter, Routine{[](){}}, a, e)} {}
+    template<class type, typename GetterType, typename SetterType>
+    Body(Type<type> &&t, GetterType &&getter, SetterType &&setter, Routine r, Attributes a) :
+        mBody{new details::Body(std::move(t), getter, setter, r, a, Routine{[](){}})} {}
+    template<class type, typename GetterType, typename SetterType>
+    Body(Type<type> &&t, GetterType &&getter, SetterType &&setter,
+         Routine r, Attributes a, Routine e) :
+        mBody{new details::Body(std::move(t), getter, setter, r, a, e)} {}
+    template<class type, typename GetterType, typename SetterType>
+    Body(Type<type> &&t, GetterType &&getter, SetterType &&setter, Attributes a) :
+        mBody{new details::Body(std::move(t), getter, setter,
+                                Routine{[](){}}, a, Routine{[](){}})} {}
+
+    template<class T>
+    Body(Binder<T> &&binder, Attributes a, Routine e) :
+        mBody{new details::Body(std::forward<Binder<T> >(binder), Routine{[](){}}, a, e)} {}
+    template<class T>
+    Body(Binder<T> &&binder, Routine r, Attributes a) :
+        mBody{new details::Body(std::forward<Binder<T> >(binder), r, a, Routine{[](){}})} {}
+    template<class T>
+    Body(Binder<T> &&binder, Routine r, Attributes a, Routine e) :
+        mBody{new details::Body(std::forward<Binder<T> >(binder), r, a, e)} {}
+    template<class T>
+    Body(Binder<T> binder, Attributes a) :
+        mBody{new details::Body(std::forward<Binder<T> >(binder), Routine{[](){}}, a, Routine{[](){}})} {}
 
     void startRoutine()
     {
@@ -116,6 +155,15 @@ public:
     Nodes &getChilds() const
     {
         return mBody->childs;
+    }
+
+    std::string getTextContent()
+    {
+        return mBody->get();
+    }
+    void setTextContent(const std::string &text)
+    {
+        mBody->set(text);
     }
 
 private:
