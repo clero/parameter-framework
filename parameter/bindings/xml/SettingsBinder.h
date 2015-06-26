@@ -31,6 +31,8 @@
 
 #include "RulesBinder.h"
 #include <xmlserializer/Node.h>
+#include "ConfigurationAccessContext.h"
+#include "AreaConfiguration.h"
 
 #include <string>
 #include <list>
@@ -46,7 +48,6 @@ namespace xml
 class SettingsBinder
 {
 public:
-
     SettingsBinder(CConfigurableDomains &domains,
                    core::criterion::internal::Criteria &criteria,
                    CSystemClass &systemClass) :
@@ -85,10 +86,98 @@ public:
         }
     }
 
+    CDomainConfiguration &getCurrentConfiguration()
+    {
+        try {
+            return mRawDomains.back()._configurations[mTmpConfigurableElementPath];
+        } catch (std::out_of_range) {
+            throw std::runtime_error("Could not find domain configuration '" +
+                                     mTmpConfigurableElementPath + "' referred to by configurable "
+                                     "domain '" + mRawDomains.back().getName() + "'.");
+        }
+    }
+
+    void handleSettings()
+    {
+        // Take care of configurable elements / area configurations ranks
+        AreaWrapper area = getCurrentConfiguration().findAreaConfiguration(mTmpConfigurableElementPath);
+
+        if (area == nullptr) {
+           throw std::runtime_error(
+                   "Configurable Element " + mTmpConfigurableElementPath  +
+                   " referred to by Configuration " + mTmpSettingsConfName +
+                   " not associated to Domain");
+        }
+        // Ranks
+        mOrderedArea.push_back(area);
+
+        std::string error;
+        // Create configuration access context
+        CConfigurationAccessContext context(error, /**bSerializeOut*/false);
+
+        // Provide current value space
+        context.setValueSpaceRaw(false);
+
+        // Provide current output raw format
+        context.setOutputRawFormat(false);
+
+        // Get subsystem
+        const CSubsystem* subsystem = area->getConfigurableElement()->getBelongingSubsystem();
+
+        if (subsystem && subsystem != area->getConfigurableElement()) {
+
+            // Element is a descendant of subsystem
+
+            // Deal with Endianness
+            context.setBigEndianSubsystem(subsystem->isBigEndian());
+        }
+        // Assign blackboard to configuration context
+        context.setParameterBlackboard(&(area->_blackboard));
+
+        // Assign base offset to configuration context
+        context.setBaseOffset(area->getConfigurableElement()->getOffset());
+
+        //area->getConfigurableElement()->serializeXmlSettings();
+    }
+
     core::xml::binding::Node getBindings()
     {
         using namespace core::xml::binding;
 
+        Node stringParameter {
+            "StringParameter",
+            Body {
+                /** text Content */
+                makeBinder(mTmpParameterValue),
+                Attributes{ {"Name", makeBinder(mTmpParameter)} },
+                Routine { [this] { handleSettings(); } }
+            }
+        };
+        Node settingsConfigurableElement {
+            "ConfigurableElement",
+            Body {
+                Attributes{ {"Path", makeBinder(mTmpConfigurableElementPath)} },
+                Nodes{ stringParameter },
+            }
+        };
+        Node settingsConfiguration {
+            "Configuration",
+            Body {
+                Attributes{ {"Name", makeBinder(mTmpSettingsConfName)} },
+                Nodes{ settingsConfigurableElement },
+                Routine {
+                    [this] {
+                        getCurrentConfiguration().reorderAreaConfigurations(mOrderedArea);
+                    }
+                }
+            }
+        };
+        Node settings {
+            "Settings",
+            Body {
+                Attributes{}, Nodes{ settingsConfiguration },
+            }
+        };
         Node configurableElement {
             "ConfigurableElement",
             Body {
@@ -156,7 +245,7 @@ public:
                         [this](bool sequenceAware){ mRawDomains.back()._bSequenceAware = sequenceAware; }
                     }
                 },
-                Nodes { configurations, configurableElements/**, settings*/ },
+                Nodes { configurations, configurableElements, settings },
             }
         };
         Node configurableDomains {
@@ -185,7 +274,16 @@ private:
     CConfigurableDomains &mDomains;
     std::list<CConfigurableDomain> mRawDomains;
     std::list<CDomainConfiguration> mRawConfigurations;
-    std::string mTmpConfigurableElementPath;;
+
+    // Settings
+    std::string mTmpConfigurableElementPath;
+    std::string mTmpSettingsConfName;
+    using AreaWrapper = std::shared_ptr<CAreaConfiguration>;
+    std::list<AreaWrapper> mAreaWrapper;
+    std::list<AreaWrapper> mOrderedArea;
+    std::string mTmpParameter;
+    /** FIXME: should be of any types */
+    std::string mTmpParameterValue;
 
     core::criterion::internal::Criteria &mCriteria;
     CSystemClass &mSystemClass;

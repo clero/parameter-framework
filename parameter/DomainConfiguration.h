@@ -38,6 +38,17 @@
 #include <vector>
 #include <memory>
 
+namespace core
+{
+namespace bindings
+{
+namespace xml
+{
+class SettingsBinder;
+} /** xml namespace */
+} /** bindings namespace */
+} /** core namespace */
+
 class CConfigurableElement;
 class CAreaConfiguration;
 class CParameterBlackboard;
@@ -46,6 +57,7 @@ class CSyncerSet;
 
 class CDomainConfiguration
 {
+    friend class core::bindings::xml::SettingsBinder;
 public:
     CDomainConfiguration();
     CDomainConfiguration(const std::string& strName);

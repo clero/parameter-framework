@@ -34,12 +34,24 @@
 #include "SyncerSet.h"
 #include "Results.h"
 
+namespace core
+{
+namespace bindings
+{
+namespace xml
+{
+class SettingsBinder;
+} /** xml namespace */
+} /** bindings namespace */
+} /** core namespace */
+
 class CConfigurableElement;
 class CXmlElement;
 class CConfigurationAccessContext;
 
 class CAreaConfiguration
 {
+    friend class core::bindings::xml::SettingsBinder;
 public:
     CAreaConfiguration(const CConfigurableElement* pConfigurableElement, const CSyncerSet* pSyncerSet);
 
